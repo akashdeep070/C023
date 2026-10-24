@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <div class="eyebrow">Documents</div>
+    <h1>Find any file<br><span class="soft">in seconds.</span></h1>
+  </div>
+  <p class="lede">Search by case number, party, client, date, or any word inside the document. Try “Sharma”.</p>
+</section>
+
+<form class="row wrap-row" method="get" style="margin-bottom: 20px">
+  <label class="search">
+    {{ icon("search", 18) }}
+    <input class="input" name="q" value="{{ q }}" placeholder="Search case number, party, client or text…" autofocus>
+  </label>
+  <select class="input" name="type" style="width: 180px; height: 50px" onchange="this.form.submit()">
+    <option value="">All types</option>
+    {% for t in types %}<option {{ "selected" if t == doc_type }}>{{ t }}</option>{% endfor %}
+  </select>
+  <button class="btn" style="height: 50px">Search</button>
+</form>
+
+<p class="label" style="margin: 28px 0 16px">
+  {{ rows|length }} file{{ "s" if rows|length != 1 }}{% if q %} matching “{{ q }}”{% endif %} · {{ "%.1f"|format(took) }} ms
+  {% if q or doc_type %} · <a href="{{ url_for('documents') }}" style="text-decoration: underline">Clear</a>{% endif %}
+</p>
+
+<div class="card">
+  {% if rows %}
+  <div class="scroll-x">
+  <table class="table stack-sm">
+    <thead><tr><th>Document</th><th>Client</th><th>Type</th><th>Hearing</th><th>Status</th><th class="r">Added</th></tr></thead>
+    <tbody>
+      {% for d in rows %}
+      <tr class="link" onclick="location.href='{{ url_for('document', doc_id=d.id) }}'">
+        <td>
+          <div class="row" style="gap: 14px">
+            <span class="icon-tile">{{ icon("file", 17) }}</span>
+            <div>
+              <a class="t" href="{{ url_for('document', doc_id=d.id) }}">{{ d.title }}</a>
+              <div class="s">{{ d.case_number or "No case number" }} · {{ d.size|filesize }}{% if d.version > 1 %} · v{{ d.version }}{% endif %}</div>
+            </div>
+          </div>
+        </td>
+        <td>{{ d.client_name or "—" }}</td>
+        <td><span class="badge line">{{ d.doc_type }}</span></td>
+        <td>
+          {% if d.hearing_date %}
+            {{ d.hearing_date|date }}{% if not d.hearing_confirmed %} <span class="faint small">· to confirm</span>{% endif %}
+          {% else %}<span class="faint">—</span>{% endif %}
+        </td>
+        <td><span class="badge {{ 'solid' if d.status == 'Reviewed' }}">{{ d.status }}</span></td>
+        <td class="r muted small">{{ d.created_at|date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <p>No files match.</p>
+    <a class="btn ghost sm" style="margin-top: 16px" href="{{ url_for('upload') }}">Upload a file</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+<a class="row" href="{{ url_for('document', doc_id=h.id) }}" style="gap: 20px">
+  <div class="datebox {{ 'ink' if h.hearing_confirmed and h.hearing_date >= today.isoformat() }}">
+    <div class="m">{{ h.hearing_date|date("%b") }}</div>
+    <div class="d">{{ h.hearing_date|date("%-d") }}</div>
+  </div>
+  <div class="grow">
+    <div style="font-weight: 500">{{ h.case_number or h.title }}</div>
+    <div class="small muted">{{ h.client_name or "No client" }} · {{ h.title }}{% if h.hearing_page %} · page {{ h.hearing_page }}{% endif %}</div>
+  </div>
+  <div style="text-align: right">
+    <div class="small">{{ h.hearing_date|until }}</div>
+    {% if h.hearing_confirmed and h.hearing_date >= today.isoformat() %}
+      <div class="small faint">{{ "Reminder sent" if h.reminder_sent else "Reminder the day before" }}</div>
+    {% elif not h.hearing_confirmed and h.hearing_date >= today.isoformat() %}
+      <div class="small faint">Open to confirm →</div>
+    {% endif %}
+  </div>
+</a>

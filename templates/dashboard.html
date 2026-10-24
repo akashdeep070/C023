@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <div class="eyebrow">Overview · {{ today|date("%A, %-d %B") }}</div>
+    <h1>Every client file,<br><span class="soft">one safe home.</span></h1>
+  </div>
+  <p class="lede">Upload a scan, photo or PDF. Lex AI fingerprints it, stores a locked copy, writes a short summary and finds the next hearing date.</p>
+</section>
+
+<div class="grid g4">
+  <a class="card stat" href="{{ url_for('documents') }}">
+    <div class="label">Documents</div>
+    <div class="num">{{ stats.documents }}</div>
+    <div class="sub">{{ stats.review }} awaiting review</div>
+  </a>
+  <a class="card stat" href="{{ url_for('hearings') }}">
+    <div class="label">Upcoming hearings</div>
+    <div class="num">{{ stats.hearings }}</div>
+    <div class="sub">{{ stats.to_confirm }} date{{ "s" if stats.to_confirm != 1 }} to confirm</div>
+  </a>
+  <a class="card stat" href="{{ url_for('clients') }}">
+    <div class="label">Active clients</div>
+    <div class="num">{{ stats.clients }}</div>
+    <div class="sub">Profiles, matters and billing</div>
+  </a>
+  <a class="card stat ink" href="{{ url_for('upload') }}">
+    <div class="label">New file</div>
+    <div class="row between" style="margin-top: 6px">
+      <div class="num" style="font-size: 26px; letter-spacing: -.03em">Upload</div>
+      {{ icon("arrow-right", 22) }}
+    </div>
+    <div class="sub muted">PDF, text or photo · up to 20 MB</div>
+  </a>
+</div>
+
+<div class="split section">
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <div class="label">Next hearings</div>
+      </div>
+      <a class="btn quiet sm" href="{{ url_for('hearings') }}">Calendar {{ icon("arrow-right", 14) }}</a>
+    </div>
+    {% if hearings %}
+    <div class="list">
+      {% for h in hearings %}
+      {% set d = h.hearing_date|date("%-d") %}
+      <a class="row" href="{{ url_for('document', doc_id=h.id) }}" style="gap: 20px">
+        <div class="datebox {{ 'ink' if h.hearing_confirmed }}">
+          <div class="m">{{ h.hearing_date|date("%b") }}</div>
+          <div class="d">{{ d }}</div>
+        </div>
+        <div class="grow">
+          <div class="t" style="font-weight: 500">{{ h.case_number or h.title }}</div>
+          <div class="small muted">{{ h.client_name or "No client" }} · {{ h.parties or h.title }}</div>
+        </div>
+        {% if h.hearing_confirmed %}
+          <span class="badge">{{ h.hearing_date|until }}</span>
+        {% else %}
+          <span class="badge dash">Confirm date</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="empty">No hearings yet. Upload an order or notice and Lex AI will find the date.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="label">Recent activity</div>
+      <a class="btn quiet sm" href="{{ url_for('activity') }}">Audit log {{ icon("arrow-right", 14) }}</a>
+    </div>
+    {% include "_timeline.html" %}
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Recently added</h2>
+    <a href="{{ url_for('documents') }}">All documents →</a>
+  </div>
+  <div class="grid g4">
+    {% for d in recent %}
+    <a class="card" href="{{ url_for('document', doc_id=d.id) }}" style="display: flex; flex-direction: column; gap: 18px">
+      <div class="row between">
+        <span class="icon-tile">{{ icon("file", 18) }}</span>
+        <span class="badge {{ 'solid' if d.status == 'Reviewed' }}">{{ d.status }}</span>
+      </div>
+      <div>
+        <h4>{{ d.title }}</h4>
+        <p class="small muted" style="margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden">{{ d.summary }}</p>
+      </div>
+      <div class="label" style="margin-top: auto">{{ d.doc_type }} · {{ d.created_at|date }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section card">
+  <div class="row between wrap-row" style="margin-bottom: 28px">
+    <div class="label">What happens after one upload</div>
+    <div class="legend label">
+      <span><i style="background: var(--surface-3)"></i>AI</span>
+      <span><i style="background: var(--ink)"></i>Automation</span>
+      <span><i style="border: 1px dashed var(--muted)"></i>Human check</span>
+    </div>
+  </div>
+  <div class="pipe">
+    <div class="step">{{ icon("upload", 22) }}<div class="label">Upload</div><div class="who">Lawyer</div></div>
+    <div class="step auto">{{ icon("fingerprint", 22) }}<div class="label">Fingerprint</div><div class="who">SHA-256 + locked copy</div></div>
+    <div class="step ai">{{ icon("scan", 22) }}<div class="label">Read</div><div class="who">PDF text · Groq vision</div></div>
+    <div class="step ai">{{ icon("sparkles", 22) }}<div class="label">Summarize + date</div><div class="who">Groq · {{ ai_model.split("/")[-1] }}</div></div>
+    <div class="step human">{{ icon("user-check", 22) }}<div class="label">Confirm date</div><div class="who">Lawyer</div></div>
+    <div class="step auto">{{ icon("bell", 22) }}<div class="label">Reminder</div><div class="who">A day before</div></div>
+  </div>
+</section>
+{% endblock %}
