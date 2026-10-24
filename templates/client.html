@@ -6,7 +6,7 @@
 <section class="head" style="margin-bottom: 48px">
   <div>
     <div class="eyebrow">{{ c.code }}{% if c.matter %} · {{ c.matter }}{% endif %}</div>
-    <h1 style="font-size: clamp(34px, 4.6vw, 56px)">{{ c.name }}</h1>
+    <h1>{{ c.name }}</h1>
   </div>
   <div class="head-actions">
     <a class="btn ghost" href="{{ url_for('invoice_new', client=c.id) }}">{{ icon("receipt", 16) }} New invoice</a>

@@ -148,10 +148,29 @@ def _section(endpoint):
     return endpoint
 
 
+def sidebar_counts(conn):
+    today = dt.date.today()
+    tomorrow = (today + dt.timedelta(days=1)).isoformat()
+    to_confirm = conn.execute("SELECT COUNT(*) FROM documents WHERE hearing_date >= ? AND hearing_confirmed = 0",
+                              (today.isoformat(),)).fetchone()[0]
+    reminders = conn.execute("""SELECT COUNT(*) FROM documents WHERE hearing_confirmed = 1 AND reminder_sent = 0
+                                AND hearing_date BETWEEN ? AND ?""", (today.isoformat(), tomorrow)).fetchone()[0]
+    return {
+        "documents": conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0],
+        "clients": conn.execute("SELECT COUNT(*) FROM clients").fetchone()[0],
+        "to_confirm": to_confirm,
+        "reminders": reminders,
+        "alerts": to_confirm + reminders,
+        "invoices_due": sum(1 for r in conn.execute("SELECT id FROM invoices")
+                            if invoice_totals(conn, r["id"])["balance"] > 0),
+    }
+
+
 @app.context_processor
 def _globals():
     return {"instance": INSTANCE, "ai_on": ai.enabled(), "ai_model": ai.text_model(),
-            "today": dt.date.today(), "section": _section(request.endpoint or "")}
+            "today": dt.date.today(), "section": _section(request.endpoint or ""),
+            "counts": sidebar_counts(db.get())}
 
 
 # ---------------------------------------------------------------- queries
@@ -218,23 +237,65 @@ def recent_activity(conn, limit=8, where="", args=()):
 @app.route("/")
 def dashboard():
     conn = db.get()
-    today = dt.date.today().isoformat()
-    stats = {
-        "documents": conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0],
-        "clients": conn.execute("SELECT COUNT(*) FROM clients").fetchone()[0],
-        "hearings": conn.execute("SELECT COUNT(*) FROM documents WHERE hearing_confirmed = 1 AND hearing_date >= ?",
-                                 (today,)).fetchone()[0],
-        "review": conn.execute("SELECT COUNT(*) FROM documents WHERE status = 'Awaiting review'").fetchone()[0],
-        "to_confirm": conn.execute("SELECT COUNT(*) FROM documents WHERE hearing_date >= ? AND hearing_confirmed = 0",
-                                   (today,)).fetchone()[0],
-    }
+    today = dt.date.today()
+    iso = today.isoformat()
+    in_14 = (today + dt.timedelta(days=14)).isoformat()
+    week_ago = (today - dt.timedelta(days=6)).isoformat()
+    invoices = [invoice_totals(conn, r["id"]) for r in conn.execute("SELECT id FROM invoices")]
     hearings = conn.execute("""SELECT d.*, c.name AS client_name FROM documents d
                                LEFT JOIN clients c ON c.id = d.client_id
-                               WHERE d.hearing_date >= ? ORDER BY d.hearing_date LIMIT 5""", (today,)).fetchall()
-    recent = conn.execute("""SELECT d.*, c.name AS client_name FROM documents d
-                             LEFT JOIN clients c ON c.id = d.client_id ORDER BY d.created_at DESC LIMIT 4""").fetchall()
-    return render_template("dashboard.html", stats=stats, hearings=hearings, recent=recent,
-                           activity=recent_activity(conn, 7))
+                               WHERE d.hearing_date >= ? ORDER BY d.hearing_date LIMIT 6""", (iso,)).fetchall()
+    kpi = {
+        "documents": conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0],
+        "new_week": conn.execute("SELECT COUNT(*) FROM documents WHERE created_at >= ?", (week_ago,)).fetchone()[0],
+        "hearings_14": conn.execute("""SELECT COUNT(*) FROM documents WHERE hearing_confirmed = 1
+                                       AND hearing_date BETWEEN ? AND ?""", (iso, in_14)).fetchone()[0],
+        "next_hearing": next((h["hearing_date"] for h in hearings if h["hearing_confirmed"]), None),
+        "review": conn.execute("SELECT COUNT(*) FROM documents WHERE status = 'Awaiting review'").fetchone()[0],
+        "outstanding": sum(i["balance"] for i in invoices),
+        "invoices_due": sum(1 for i in invoices if i["balance"] > 0),
+    }
+
+    # Actions logged per day for the last 14 days (one series, drawn as bars)
+    rows = dict(conn.execute("""SELECT substr(ts, 1, 10), COUNT(*) FROM audit
+                                WHERE ts >= ? GROUP BY 1""", ((today - dt.timedelta(days=13)).isoformat(),)).fetchall())
+    days = [today - dt.timedelta(days=13 - i) for i in range(14)]
+    chart = [{"date": d, "count": rows.get(d.isoformat(), 0)} for d in days]
+    peak = max([c["count"] for c in chart] + [1])
+
+    # Things that need a person, most urgent first
+    tasks = []
+    for d in conn.execute("""SELECT * FROM documents WHERE hearing_date >= ? AND hearing_confirmed = 0
+                             ORDER BY hearing_date""", (iso,)):
+        tasks.append({"icon": "calendar", "title": f"Confirm hearing on {nice_date(d['hearing_date'])}",
+                      "sub": f"{d['case_number'] or d['title']} · suggested by AI",
+                      "href": url_for("document", doc_id=d["id"]), "cta": "Review"})
+    reminders = conn.execute("""SELECT COUNT(*) FROM documents WHERE hearing_confirmed = 1 AND reminder_sent = 0
+                                AND hearing_date BETWEEN ? AND ?""",
+                             (iso, (today + dt.timedelta(days=1)).isoformat())).fetchone()[0]
+    if reminders:
+        tasks.append({"icon": "bell", "title": f"{reminders} reminder{'s' if reminders > 1 else ''} due today",
+                      "sub": "Hearing tomorrow · email the lawyer", "form": url_for("hearings_remind"), "cta": "Send"})
+    for d in conn.execute("SELECT * FROM documents WHERE status = 'Awaiting review' ORDER BY created_at DESC LIMIT 3"):
+        tasks.append({"icon": "sparkles", "title": f"Check AI summary: {d['title']}",
+                      "sub": f"{d['doc_type']} · added {nice_date(d['created_at'])}",
+                      "href": url_for("document", doc_id=d["id"]), "cta": "Open"})
+    for i in invoices:
+        if i["status"] == "Overdue":
+            tasks.append({"icon": "receipt", "title": f"{i['inv']['number']} is overdue",
+                          "sub": f"{inr(i['balance'])} due since {nice_date(i['inv']['due'])}",
+                          "href": url_for("invoice", invoice_id=i["inv"]["id"]), "cta": "Open"})
+
+    recent = conn.execute("""SELECT d.*, c.name AS client_name, v.size FROM documents d
+                             LEFT JOIN clients c ON c.id = d.client_id
+                             JOIN versions v ON v.document_id = d.id
+                               AND v.version = (SELECT MAX(version) FROM versions WHERE document_id = d.id)
+                             ORDER BY d.created_at DESC LIMIT 5""").fetchall()
+    hour = dt.datetime.now().hour
+    greeting = "Good morning" if hour < 12 else ("Good afternoon" if hour < 17 else "Good evening")
+    return render_template("dashboard.html", kpi=kpi, hearings=hearings, recent=recent, chart=chart, peak=peak,
+                           chart_total=sum(c["count"] for c in chart), tasks=tasks, health=_status(),
+                           activity=recent_activity(conn, 6), greeting=greeting)
 
 
 @app.route("/upload", methods=["GET", "POST"])
