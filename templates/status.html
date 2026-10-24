@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Status{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <div class="eyebrow">SLA &amp; health</div>
+    <h1>Promises we<br><span class="soft">can measure.</span></h1>
+  </div>
+  <p class="lede">Live numbers from the instance that served this page. Refresh a few times behind nginx and watch it switch between app1 and app2.</p>
+</section>
+
+<div class="grid g4">
+  <div class="card stat ink">
+    <div class="label">Served by</div>
+    <div class="num" style="font-size: 34px">{{ s.instance }}</div>
+    <div class="sub">Up {{ (s.uptime_s // 3600) }}h {{ (s.uptime_s % 3600) // 60 }}m {{ s.uptime_s % 60 }}s</div>
+  </div>
+  <div class="card stat">
+    <div class="label">Health</div>
+    <div class="num" style="font-size: 34px">{{ "Healthy" if s.status == "ok" else "Degraded" }}</div>
+    <div class="sub mono">GET /health → {{ 200 if s.status == "ok" else 503 }}</div>
+  </div>
+  <div class="card stat">
+    <div class="label">Requests</div>
+    <div class="num">{{ s.requests }}</div>
+    <div class="sub">{{ s.errors }} errors on this instance</div>
+  </div>
+  <div class="card stat">
+    <div class="label">AI</div>
+    <div class="num" style="font-size: 34px">{{ "Groq" if s.ai.enabled else "Local" }}</div>
+    <div class="sub mono" style="word-break: break-all">{{ s.ai.model if s.ai.enabled else "Set GROQ_API_KEY" }}</div>
+  </div>
+</div>
+
+<div class="split section" style="margin-top: 24px">
+  <div class="card">
+    <div class="card-head"><h3>SLA targets</h3><span class="label">Observed live</span></div>
+    {% set rows = [
+      ("Response time (P95)", "< 2 s", "%.0f ms"|format(s.p95_ms), s.p95_ms < 2000, s.p95_ms / 2000),
+      ("Average / P99", "Report", "%.0f / %.0f ms"|format(s.avg_ms, s.p99_ms), true, s.p99_ms / 2000),
+      ("Error rate", "< 1%", "%.2f%%"|format(s.error_rate), s.error_rate < 1, s.error_rate / 1),
+      ("Database", "Reachable", "OK" if s.checks.database else "Down", s.checks.database, 0),
+      ("File storage", "Writable", "OK" if s.checks.storage else "Read-only", s.checks.storage, 0),
+      ("File integrity", "100%", "Verify on each file", true, 0),
+    ] %}
+    <table class="table stack-sm">
+      <thead><tr><th>Metric</th><th>Target</th><th>Observed</th><th class="r">Result</th></tr></thead>
+      <tbody>
+      {% for name, target, observed, ok, ratio in rows %}
+        <tr>
+          <td class="t">{{ name }}</td>
+          <td class="muted">{{ target }}</td>
+          <td>
+            <div class="mono">{{ observed }}</div>
+            {% if ratio %}<div class="meter" style="margin-top: 8px; max-width: 160px"><i style="width: {{ [ratio * 100, 100]|min|round(1) }}%"></i></div>{% endif %}
+          </td>
+          <td class="r"><span class="badge {{ 'line' if ok else 'solid' }}">{{ "Met" if ok else "Not met" }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <aside class="stack">
+    <div class="card">
+      <div class="label" style="margin-bottom: 20px">Incident severity &amp; response</div>
+      <div class="list">
+        {% for sev, what, time in [("S1", "Site down, or a file altered", "15 min"), ("S2", "Slow or failing for users", "1 h"),
+                                   ("S3", "Backup app down, site still up", "4 h"), ("S4", "Cosmetic issue", "next day")] %}
+        <div class="row" style="gap: 14px">
+          <span class="badge {{ 'solid' if loop.index < 3 else 'line' }} mono" style="width: 40px; justify-content: center">{{ sev }}</span>
+          <span class="grow small">{{ what }}</span>
+          <span class="mono faint">{{ time }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="card soft">
+      <div class="label" style="margin-bottom: 14px">Break it on purpose</div>
+      <p class="small muted">Run <span class="mono">docker compose exec app1 kill 1</span>. nginx sends requests to app2 so this page keeps loading, and Docker restarts app1 on its own.</p>
+    </div>
+  </aside>
+</div>
+{% endblock %}

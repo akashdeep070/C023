@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ code }}{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <div class="eyebrow">Error {{ code }}</div>
+    <h1>Nothing here.<br><span class="soft">{{ message }}</span></h1>
+  </div>
+  <div class="head-actions"><a class="btn" href="{{ url_for('dashboard') }}">{{ icon("arrow-left", 16) }} Back to overview</a></div>
+</section>
+{% endblock %}

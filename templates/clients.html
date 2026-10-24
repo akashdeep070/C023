@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<section class="head">
+  <div>
+    <div class="eyebrow">Clients</div>
+    <h1>One client. Every case.<br><span class="soft">One workspace.</span></h1>
+  </div>
+  <p class="lede">A directory that connects contacts, matters, documents, hearing dates and billing.</p>
+</section>
+
+<div class="grid g4">
+  <div class="card stat"><div class="label">Active clients</div><div class="num">{{ stats.clients }}</div></div>
+  <div class="card stat"><div class="label">Open matters</div><div class="num">{{ stats.matters }}</div></div>
+  <div class="card stat"><div class="label">Invoices due</div><div class="num">{{ stats.invoices_due }}</div></div>
+  <div class="card stat"><div class="label">Outstanding</div><div class="num" style="font-size: 36px">{{ stats.outstanding|inr }}</div></div>
+</div>
+
+<div class="card section" style="margin-top: 24px">
+  <form class="row wrap-row" method="get" style="margin-bottom: 28px">
+    <label class="search">
+      {{ icon("search", 18) }}
+      <input class="input" name="q" value="{{ q }}" placeholder="Search client, case number or assigned lawyer">
+    </label>
+    <button type="button" class="btn" onclick="document.getElementById('add').hidden = !document.getElementById('add').hidden" style="height: 50px">{{ icon("plus", 16) }} Add client</button>
+  </form>
+
+  <form id="add" method="post" hidden class="card soft" style="margin-bottom: 28px">
+    <div class="grid g3" style="gap: 20px">
+      <label class="field"><span>Name</span><input class="input" name="name" required placeholder="Demo Client D"></label>
+      <label class="field"><span>Matter</span><input class="input" name="matter" placeholder="e.g. Civil matter"></label>
+      <label class="field"><span>Assigned lawyer</span><input class="input" name="lawyer" placeholder="Adv. R. Mehta"></label>
+      <label class="field"><span>Email</span><input class="input" type="email" name="email"></label>
+      <label class="field"><span>Phone</span><input class="input" name="phone"></label>
+      <div class="field"><span>&nbsp;</span><button class="btn" style="height: 46px">Save client</button></div>
+    </div>
+  </form>
+
+  {% if rows %}
+  <div class="scroll-x">
+  <table class="table stack-sm">
+    <thead><tr><th>Client</th><th>Matters</th><th>Documents</th><th>Next hearing</th><th>Lawyer</th><th class="r">Balance due</th></tr></thead>
+    <tbody>
+      {% for c in rows %}
+      <tr class="link" onclick="location.href='{{ url_for('client', client_id=c.id) }}'">
+        <td>
+          <a class="t" href="{{ url_for('client', client_id=c.id) }}">{{ c.name }}</a>
+          <div class="s">{{ c.code }}{% if c.matter %} · {{ c.matter }}{% endif %}</div>
+        </td>
+        <td>{{ c.matters }} active</td>
+        <td>{{ c.docs }}</td>
+        <td>{{ c.next_hearing|date if c.next_hearing else "Not scheduled" }}</td>
+        <td class="muted">{{ c.lawyer or "—" }}</td>
+        <td class="r" style="font-weight: 500">{{ c.balance|inr }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty">No clients match “{{ q }}”.</div>
+  {% endif %}
+</div>
+{% endblock %}

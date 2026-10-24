@@ -1,0 +1,16 @@
+{% if activity %}
+<div class="timeline">
+  {% for a in activity %}
+  {% set kind = "alert" if a.action in ("Integrity alert", "File overwritten") else ("auto" if a.actor in ("Automation", "Scheduler") else "") %}
+  <div class="ev">
+    <span class="pin {{ kind }}"></span>
+    <div>
+      <div class="what">{{ a.action }}{% if a.doc_title and not hide_doc %} · <a href="{{ url_for('document', doc_id=a.document_id) }}" class="muted" style="font-weight: 400">{{ a.doc_title }}</a>{% elif a.client_name and not a.document_id and not hide_doc %} · <span class="muted" style="font-weight: 400">{{ a.client_name }}</span>{% endif %}</div>
+      <div class="meta">{{ a.actor }} · {{ a.ts|time }}{% if a.detail %} · {{ a.detail }}{% endif %}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty">Nothing yet.</div>
+{% endif %}
