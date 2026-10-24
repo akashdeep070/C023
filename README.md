@@ -14,7 +14,7 @@ All names, cases and amounts in the app are dummy data.
 
 | Page | What it shows |
 | --- | --- |
-| Overview | Counts, next hearings, recent activity, and the "after one upload" pipeline |
+| Overview | Control panel: KPI tiles, a 14-day activity chart, live system health, a "needs attention" queue, upcoming hearings, recent documents and live activity |
 | Upload | Drag-and-drop for PDF, TXT, PNG, JPG and WEBP files up to 20 MB, with auto-detected case number and document type |
 | Documents | Search by case number, party, client, date or any word in the file |
 | Document | AI summary and key points, "Ask the file" (answers cite a page), hearing confirmation, SHA-256 proof, versions, tamper demo and restore, audit trail |
@@ -23,6 +23,10 @@ All names, cases and amounts in the app are dummy data.
 | Billing | Itemized invoices, retainers, payments and a printable PDF invoice |
 | Activity | The full audit log |
 | Status | Live SLA numbers (P95/P99 latency, error rate), health checks, and which container served the page |
+
+The app uses a SaaS-style shell: a sidebar menu with counts, a menu button that collapses it to an
+icon rail (or opens it as a drawer on phones), and a top bar with search (press `/`), the serving
+instance, and hearing alerts.
 
 ## Run it locally
 

@@ -6,7 +6,7 @@
 <section class="head" style="margin-bottom: 48px">
   <div>
     <div class="eyebrow">{{ doc.doc_type }}{% if doc.case_number %} · {{ doc.case_number }}{% endif %}</div>
-    <h1 style="font-size: clamp(32px, 4.2vw, 50px)">{{ doc.title }}</h1>
+    <h1>{{ doc.title }}</h1>
     <div class="row wrap-row" style="margin-top: 20px; gap: 10px">
       <span class="badge {{ 'solid' if doc.status == 'Reviewed' }}">{{ doc.status }}</span>
       {% if doc.client_name %}<a class="badge line" href="{{ url_for('client', client_id=doc.client_id) }}">{{ icon("user", 13) }} {{ doc.client_name }}</a>{% endif %}
