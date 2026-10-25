@@ -17,14 +17,13 @@ const NAV: { group: string; items: NavItem[] }[] = [
   { group: "System", items: [
     { to: "/activity", label: "Audit log", icon: "history" },
     { to: "/status", label: "Status & SLA", icon: "activity" },
-    { to: "/about", label: "About project", icon: "info" },
   ] },
 ];
 
 const CRUMBS: [RegExp, string][] = [
   [/^\/$/, "Overview"], [/^\/upload/, "Upload"], [/^\/documents\/\d+/, "Document"], [/^\/documents/, "Documents"],
   [/^\/hearings/, "Hearings"], [/^\/clients\/\d+/, "Client"], [/^\/clients/, "Clients"], [/^\/billing\/new/, "New invoice"],
-  [/^\/billing\/\d+/, "Invoice"], [/^\/billing/, "Billing"], [/^\/activity/, "Audit log"], [/^\/status/, "Status & SLA"], [/^\/about/, "About the project"],
+  [/^\/billing\/\d+/, "Invoice"], [/^\/billing/, "Billing"], [/^\/activity/, "Audit log"], [/^\/status/, "Status & SLA"],
 ];
 
 const isMobile = () => window.matchMedia("(max-width: 900px)").matches;

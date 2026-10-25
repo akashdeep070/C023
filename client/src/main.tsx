@@ -5,7 +5,6 @@ import { PageHead } from "./components/common";
 import { FlashProvider } from "./components/Flash";
 import { Icon } from "./components/Icon";
 import { Layout } from "./components/Layout";
-import { About } from "./pages/About";
 import { Activity } from "./pages/Activity";
 import { Billing } from "./pages/Billing";
 import { ClientPage } from "./pages/ClientPage";
@@ -46,7 +45,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="billing/:id" element={<InvoicePage />} />
             <Route path="activity" element={<Activity />} />
             <Route path="status" element={<StatusPage />} />
-            <Route path="about" element={<About />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
