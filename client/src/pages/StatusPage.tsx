@@ -4,11 +4,11 @@ import { Loading, PageHead } from "../components/common";
 import { Icon } from "../components/Icon";
 import { useApi, useTitle } from "../hooks";
 
-const SEVERITY: [string, string, string][] = [
-  ["S1", "Site down, or a file altered", "15 min"],
-  ["S2", "Slow or failing for users", "1 h"],
-  ["S3", "Backup app down, site still up", "4 h"],
-  ["S4", "Cosmetic issue", "next day"],
+const SEVERITY: [string, string, string, string][] = [
+  ["S1", "Site down, or a file altered", "15 min", "red"],
+  ["S2", "Slow or failing for users", "1 h", "amber"],
+  ["S3", "Backup app down, site still up", "4 h", "blue"],
+  ["S4", "Cosmetic issue", "next day", ""],
 ];
 
 export function StatusPage() {
@@ -38,24 +38,24 @@ export function StatusPage() {
         lede="Live numbers from the instance that answered. Behind nginx, refresh and watch it switch between app1 and app2." />
 
       <div className="grid g4 kpis">
-        <div className="card kpi ink">
+        <div className="card kpi">
           <div className="label">Served by</div>
-          <div className="num">{s.instance}</div>
+          <div className="num row" style={{ gap: 10 }}><span className="pulse blue" style={{ margin: 0 }} />{s.instance}</div>
           <div className="kpi-sub">Up {Math.floor(up / 3600)}h {Math.floor((up % 3600) / 60)}m {up % 60}s</div>
         </div>
         <div className="card kpi">
           <div className="label">Health</div>
-          <div className="num">{s.status === "ok" ? "Healthy" : "Degraded"}</div>
+          <div className={`num ${s.status === "ok" ? "green" : "red"}`}>{s.status === "ok" ? "Healthy" : "Degraded"}</div>
           <div className="kpi-sub mono">GET /health → {s.status === "ok" ? 200 : 503}</div>
         </div>
         <div className="card kpi">
           <div className="label">API requests</div>
           <div className="num">{s.requests}</div>
-          <div className="kpi-sub">{s.errors} errors on this instance</div>
+          <div className={`kpi-sub${s.errors ? " text-red" : ""}`}>{s.errors} errors on this instance</div>
         </div>
         <div className="card kpi">
           <div className="label">AI</div>
-          <div className="num">{s.ai.enabled ? "Groq" : "Local"}</div>
+          <div className={`num ${s.ai.enabled ? "" : "amber"}`}>{s.ai.enabled ? "Groq" : "Local"}</div>
           <div className="kpi-sub mono" style={{ wordBreak: "break-all" }}>{s.ai.enabled ? s.ai.model : "Set GROQ_API_KEY"}</div>
         </div>
       </div>
@@ -72,9 +72,9 @@ export function StatusPage() {
                   <td className="muted">{target}</td>
                   <td>
                     <div className="mono">{observed}</div>
-                    {ratio > 0 && <div className="meter" style={{ marginTop: 8, maxWidth: 160 }}><i style={{ width: `${Math.min(ratio * 100, 100)}%` }} /></div>}
+                    {ratio > 0 && <div className={`meter${ok ? "" : " red"}`} style={{ marginTop: 8, maxWidth: 160 }}><i style={{ width: `${Math.min(ratio * 100, 100)}%` }} /></div>}
                   </td>
-                  <td className="r"><span className={`badge ${ok ? "line" : "solid"}`}>{ok ? "Met" : "Not met"}</span></td>
+                  <td className="r"><span className={`badge ${ok ? "green" : "red"}`}>{ok ? "Met" : "Not met"}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -85,9 +85,9 @@ export function StatusPage() {
           <div className="card">
             <div className="label" style={{ marginBottom: 20 }}>Incident severity &amp; response</div>
             <div className="list">
-              {SEVERITY.map(([sev, what, time], i) => (
+              {SEVERITY.map(([sev, what, time, tone]) => (
                 <div className="row" style={{ gap: 14 }} key={sev}>
-                  <span className={`badge mono ${i < 2 ? "solid" : "line"}`} style={{ width: 40, justifyContent: "center" }}>{sev}</span>
+                  <span className={`badge mono ${tone}`} style={{ width: 40, justifyContent: "center" }}>{sev}</span>
                   <span className="grow small">{what}</span>
                   <span className="mono faint">{time}</span>
                 </div>
@@ -95,7 +95,7 @@ export function StatusPage() {
             </div>
           </div>
           <div className="card soft">
-            <div className="label" style={{ marginBottom: 14 }}><Icon name="zap" size={13} /> Break it on purpose</div>
+            <div className="label row text-red" style={{ marginBottom: 14, gap: 6 }}><Icon name="zap" size={13} /> Break it on purpose</div>
             <p className="small muted">
               Run <span className="mono">docker compose exec app1 kill 1</span>. nginx sends requests to app2 so the app keeps
               working, and Docker restarts app1 on its own.

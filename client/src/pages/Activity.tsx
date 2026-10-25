@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { niceTime } from "../../../shared/format";
 import type { AuditRow } from "../../../shared/types";
-import { Loading, PageHead } from "../components/common";
+import { Loading, PageHead, actionTone } from "../components/common";
 import { useApi, useTitle } from "../hooks";
 
 export function Activity() {
@@ -23,8 +23,7 @@ export function Activity() {
                     <tr key={a.id}>
                       <td className="muted small nowrap">{niceTime(a.ts)}</td>
                       <td>
-                        <span className={`badge${["Integrity alert", "File overwritten"].includes(a.action) ? " solid"
-                          : ["Automation", "Scheduler"].includes(a.actor) ? " dash" : ""}`}>{a.action}</span>
+                        <span className={`badge ${actionTone(a.action)}`}>{a.action}</span>
                       </td>
                       <td>
                         {a.document_id && a.doc_title ? <Link className="t" to={`/documents/${a.document_id}`}>{a.doc_title}</Link>

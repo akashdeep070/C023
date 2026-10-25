@@ -5,14 +5,15 @@ import { CHANGED, api } from "../api";
 import { FlashOutlet } from "./Flash";
 import { Icon } from "./Icon";
 
-const NAV: { group: string; items: { to: string; label: string; icon: string; count?: keyof Meta["counts"] }[] }[] = [
+type NavItem = { to: string; label: string; icon: string; count?: keyof Meta["counts"]; tone?: "amber" | "red" };
+const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Workspace", items: [
     { to: "/", label: "Overview", icon: "grid" },
     { to: "/documents", label: "Documents", icon: "file", count: "documents" },
-    { to: "/hearings", label: "Hearings", icon: "calendar", count: "to_confirm" },
+    { to: "/hearings", label: "Hearings", icon: "calendar", count: "to_confirm", tone: "amber" },
     { to: "/clients", label: "Clients", icon: "users", count: "clients" },
   ] },
-  { group: "Finance", items: [{ to: "/billing", label: "Billing", icon: "receipt", count: "invoices_due" }] },
+  { group: "Finance", items: [{ to: "/billing", label: "Billing", icon: "receipt", count: "invoices_due", tone: "amber" }] },
   { group: "System", items: [
     { to: "/activity", label: "Audit log", icon: "history" },
     { to: "/status", label: "Status & SLA", icon: "activity" },
@@ -104,7 +105,7 @@ export function Layout() {
                     className={({ isActive }) => `side-link${isActive ? " on" : ""}`}>
                     <Icon name={item.icon} size={18} />
                     <span className="side-label">{item.label}</span>
-                    {n ? <span className="side-count">{n}</span> : null}
+                    {n ? <span className={`side-count ${item.tone ?? ""}`}>{n}</span> : null}
                   </NavLink>
                 );
               })}
@@ -114,7 +115,7 @@ export function Layout() {
 
         <div className="side-foot">
           <div className="engine">
-            <span className={`pulse${meta?.ai.enabled ? " on" : ""}`} />
+            <span className={`pulse ${meta?.ai.enabled ? "green" : "amber"}`} />
             <div className="side-label">
               <div className="small" style={{ fontWeight: 500 }}>{meta?.ai.enabled ? "Groq connected" : "Local reader"}</div>
               <div className="mono faint" style={{ fontSize: 11 }}>

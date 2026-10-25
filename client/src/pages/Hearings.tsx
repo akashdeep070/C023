@@ -48,20 +48,20 @@ export function Hearings() {
       <div className="split">
         <div className="stack">
           {data.pending.length > 0 && (
-            <div className="card" style={{ borderStyle: "dashed", borderColor: "var(--line-strong)" }}>
+            <div className="card tone-amber">
               <div className="card-head">
                 <div>
                   <h3>Waiting for you to confirm</h3>
                   <div className="small muted" style={{ marginTop: 4 }}>Suggested by AI. No reminder until you confirm.</div>
                 </div>
-                <span className="badge dash">{data.pending.length}</span>
+                <span className="badge amber">{data.pending.length}</span>
               </div>
               <div className="list">{data.pending.map((h) => <HearingRow h={h} key={h.id} />)}</div>
             </div>
           )}
 
           <div className="card">
-            <div className="card-head"><h3>Upcoming</h3><span className="badge">{data.upcoming.length}</span></div>
+            <div className="card-head"><h3>Upcoming</h3><span className="badge blue">{data.upcoming.length}</span></div>
             {data.upcoming.length
               ? <div className="list">{data.upcoming.map((h) => <HearingRow h={h} key={h.id} />)}</div>
               : <div className="empty">No confirmed hearings ahead.</div>}
@@ -100,8 +100,8 @@ export function Hearings() {
               })}
             </div>
             <div className="legend label" style={{ marginTop: 22 }}>
-              <span><i style={{ background: "var(--ink)" }} />Confirmed</span>
-              <span><i style={{ border: "1.5px dashed var(--muted)" }} />To confirm</span>
+              <span><i className="blue" />Confirmed</span>
+              <span><i className="human" />To confirm</span>
             </div>
           </div>
           <div className="card soft">

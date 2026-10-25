@@ -23,8 +23,8 @@ export function Billing() {
         <>
           <div className="grid g3" style={{ marginBottom: 20 }}>
             <div className="card kpi"><div className="label">Billed</div><div className="num">{inr(data.totals.billed)}</div></div>
-            <div className="card kpi"><div className="label">Received</div><div className="num">{inr(data.totals.received)}</div></div>
-            <div className="card kpi ink"><div className="label">Outstanding</div><div className="num">{inr(data.totals.outstanding)}</div></div>
+            <div className="card kpi"><div className="label">Received</div><div className="num green">{inr(data.totals.received)}</div></div>
+            <div className="card kpi"><div className="label">Outstanding</div><div className={`num ${data.totals.outstanding ? "amber" : "green"}`}>{inr(data.totals.outstanding)}</div></div>
           </div>
 
           <div className="card">
@@ -44,7 +44,7 @@ export function Billing() {
                         <td className="muted">{niceDate(t.inv.due)}</td>
                         <td><span className={invoiceBadge(t.status)}>{t.status}</span></td>
                         <td className="r">{inr(t.total)}</td>
-                        <td className="r" style={{ fontWeight: 500 }}>{inr(t.balance)}</td>
+                        <td className={`r ${t.status === "Overdue" ? "text-red" : t.balance ? "text-amber" : "text-green"}`} style={{ fontWeight: 500 }}>{inr(t.balance)}</td>
                       </tr>
                     ))}
                   </tbody>

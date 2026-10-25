@@ -3,10 +3,13 @@ import { inr, niceDate, strftime, today, until, filesize } from "../../../shared
 import type { Dashboard as Data } from "../../../shared/types";
 import { api } from "../api";
 import { ActivityChart } from "../components/ActivityChart";
-import { DateBox, Loading, PageHead, Timeline, docBadge } from "../components/common";
+import { DateBox, Loading, PageHead, Timeline, docBadge, hearingTone } from "../components/common";
 import { useFlash } from "../components/Flash";
 import { Icon } from "../components/Icon";
 import { useApi, useTitle } from "../hooks";
+
+// Each kind of task gets the color of the work it needs
+const TASK_TONE: Record<string, string> = { calendar: "amber", bell: "blue", sparkles: "purple", receipt: "red" };
 
 function greeting() {
   const h = new Date().getHours();
@@ -28,14 +31,15 @@ export function Dashboard() {
   };
 
   const up = health.uptime_s;
-  const healthRows: [string, string, boolean][] = [
-    ["Instance", health.instance, true],
-    ["Uptime", `${Math.floor(up / 3600)}h ${String(Math.floor((up % 3600) / 60)).padStart(2, "0")}m`, true],
-    ["Response P95", `${health.p95_ms.toFixed(0)} ms`, health.p95_ms < 2000],
-    ["Error rate", `${health.error_rate.toFixed(2)}%`, health.error_rate < 1],
-    ["Database", health.checks.database ? "Connected" : "Down", health.checks.database],
-    ["File storage", health.checks.storage ? "Writable" : "Read-only", health.checks.storage],
-    ["AI engine", health.ai.enabled ? `Groq · ${health.ai.model.split("/").pop()}` : "Local reader", true],
+  // [label, value, tone of the status dot]
+  const healthRows: [string, string, "green" | "amber" | "red"][] = [
+    ["Instance", health.instance, "green"],
+    ["Uptime", `${Math.floor(up / 3600)}h ${String(Math.floor((up % 3600) / 60)).padStart(2, "0")}m`, "green"],
+    ["Response P95", `${health.p95_ms.toFixed(0)} ms`, health.p95_ms < 2000 ? "green" : "red"],
+    ["Error rate", `${health.error_rate.toFixed(2)}%`, health.error_rate < 1 ? "green" : "red"],
+    ["Database", health.checks.database ? "Connected" : "Down", health.checks.database ? "green" : "red"],
+    ["File storage", health.checks.storage ? "Writable" : "Read-only", health.checks.storage ? "green" : "red"],
+    ["AI engine", health.ai.enabled ? `Groq · ${health.ai.model.split("/").pop()}` : "Local reader", health.ai.enabled ? "green" : "amber"],
   ];
 
   return (
@@ -50,25 +54,25 @@ export function Dashboard() {
 
       <div className="grid g4 kpis">
         <Link className="card kpi" to="/documents">
-          <div className="kpi-top"><span className="label">Documents</span><span className="icon-tile"><Icon name="file" size={17} /></span></div>
+          <div className="kpi-top"><span className="label">Documents</span><span className="icon-tile blue"><Icon name="file" size={17} /></span></div>
           <div className="num">{kpi.documents}</div>
           <div className="kpi-sub"><span className="delta"><Icon name="trending" size={13} /> {kpi.new_week}</span> added this week</div>
         </Link>
         <Link className="card kpi" to="/hearings">
-          <div className="kpi-top"><span className="label">Hearings · 14 days</span><span className="icon-tile"><Icon name="calendar" size={17} /></span></div>
+          <div className="kpi-top"><span className="label">Hearings · 14 days</span><span className="icon-tile blue"><Icon name="calendar" size={17} /></span></div>
           <div className="num">{kpi.hearings_14}</div>
           <div className="kpi-sub">
             {kpi.next_hearing ? `Next ${niceDate(kpi.next_hearing, "%-d %b")} · ${until(kpi.next_hearing).toLowerCase()}` : "None scheduled"}
           </div>
         </Link>
         <Link className="card kpi" to="/documents">
-          <div className="kpi-top"><span className="label">Awaiting review</span><span className="icon-tile"><Icon name="sparkles" size={17} /></span></div>
-          <div className="num">{kpi.review}</div>
+          <div className="kpi-top"><span className="label">Awaiting review</span><span className="icon-tile purple"><Icon name="sparkles" size={17} /></span></div>
+          <div className={`num${kpi.review ? " amber" : ""}`}>{kpi.review}</div>
           <div className="kpi-sub">AI summaries to check</div>
         </Link>
-        <Link className="card kpi ink" to="/billing">
-          <div className="kpi-top"><span className="label">Outstanding</span><span className="icon-tile"><Icon name="receipt" size={17} /></span></div>
-          <div className="num">{inr(kpi.outstanding)}</div>
+        <Link className="card kpi" to="/billing">
+          <div className="kpi-top"><span className="label">Outstanding</span><span className="icon-tile amber"><Icon name="receipt" size={17} /></span></div>
+          <div className={`num${kpi.outstanding ? " amber" : " green"}`}>{inr(kpi.outstanding)}</div>
           <div className="kpi-sub">{kpi.invoices_due} invoice{kpi.invoices_due === 1 ? "" : "s"} unpaid</div>
         </Link>
       </div>
@@ -93,14 +97,14 @@ export function Dashboard() {
         <div className="card">
           <div className="card-head">
             <div className="label">System health</div>
-            <span className={`badge ${health.status === "ok" ? "line" : "solid"}`}>
+            <span className={`badge ${health.status === "ok" ? "green" : "red"}`}>
               <span className="dot" />{health.status === "ok" ? "Operational" : "Degraded"}
             </span>
           </div>
           <div className="health">
-            {healthRows.map(([k, v, ok]) => (
+            {healthRows.map(([k, v, tone]) => (
               <div className="hrow" key={k}>
-                <span className={`pulse${ok ? " on" : ""}`} />
+                <span className={`pulse ${tone}`} />
                 <span className="muted">{k}</span>
                 <span className="mono hval">{v}</span>
               </div>
@@ -114,13 +118,13 @@ export function Dashboard() {
         <div className="card">
           <div className="card-head">
             <div className="label">Needs attention</div>
-            <span className={`badge${tasks.length ? " solid" : ""}`}>{tasks.length}</span>
+            <span className={`badge ${tasks.length ? "amber" : "green"}`}>{tasks.length}</span>
           </div>
           {tasks.length ? (
             <div className="list">
               {tasks.map((t) => (
                 <div className="row" style={{ gap: 14 }} key={t.title}>
-                  <span className="icon-tile"><Icon name={t.icon} size={17} /></span>
+                  <span className={`icon-tile ${TASK_TONE[t.icon] ?? ""}`}><Icon name={t.icon} size={17} /></span>
                   <div className="grow">
                     <div className="ellipsis" style={{ fontWeight: 500 }}>{t.title}</div>
                     <div className="small muted">{t.sub}</div>
@@ -132,7 +136,7 @@ export function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="empty"><Icon name="check-circle" size={22} /><p style={{ marginTop: 10 }}>All clear.</p></div>
+            <div className="empty text-green"><Icon name="check-circle" size={22} /><p style={{ marginTop: 10 }}>All clear.</p></div>
           )}
         </div>
 
@@ -145,10 +149,12 @@ export function Dashboard() {
             <div className="list">
               {data.hearings.map((h) => (
                 <Link className="row" to={`/documents/${h.id}`} style={{ gap: 14 }} key={h.id}>
-                  <DateBox date={h.hearing_date} ink={Boolean(h.hearing_confirmed)} small />
+                  <DateBox date={h.hearing_date} tone={hearingTone(h)} small />
                   <div className="grow" style={{ minWidth: 0 }}>
                     <div className="ellipsis" style={{ fontWeight: 500 }}>{h.case_number || h.title}</div>
-                    <div className="small muted">{h.client_name || "No client"} · {h.hearing_confirmed ? until(h.hearing_date) : "to confirm"}</div>
+                    <div className="small muted">
+                      {h.client_name || "No client"} · {h.hearing_confirmed ? until(h.hearing_date) : <span className="text-amber">to confirm</span>}
+                    </div>
                   </div>
                 </Link>
               ))}
@@ -186,7 +192,7 @@ export function Dashboard() {
         <div className="card">
           <div className="card-head">
             <div className="label">Live activity</div>
-            <span className="badge line"><span className="pulse on" style={{ margin: 0 }} />Audit trail</span>
+            <span className="badge blue"><span className="pulse blue" style={{ margin: 0 }} />Live</span>
           </div>
           <Timeline rows={data.activity} />
         </div>
@@ -196,9 +202,9 @@ export function Dashboard() {
         <div className="row between wrap-row" style={{ marginBottom: 22 }}>
           <div className="label">Pipeline · what happens after one upload</div>
           <div className="legend label">
-            <span><i style={{ background: "var(--surface-3)" }} />AI</span>
-            <span><i style={{ background: "var(--ink)" }} />Automation</span>
-            <span><i style={{ border: "1px dashed var(--muted)" }} />Human check</span>
+            <span><i className="ai" />AI</span>
+            <span><i className="auto" />Automation</span>
+            <span><i className="human" />Human check</span>
           </div>
         </div>
         <div className="pipe">

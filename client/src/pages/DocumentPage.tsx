@@ -31,6 +31,7 @@ export function DocumentPage() {
   if (!data) return <Loading error={error} />;
   const { doc, versions, pages, key_points } = data;
   const upcoming = Boolean(doc.hearing_confirmed) && doc.hearing_date >= isoDate();
+  const suggested = !doc.hearing_confirmed && doc.hearing_date >= isoDate();
 
   /** Run a POST action, show its message, then refresh the page data. */
   const act = async (key: string, path: string, body?: unknown) => {
@@ -114,7 +115,7 @@ export function DocumentPage() {
           <div className="card">
             <div className="card-head">
               <div className="row" style={{ gap: 14 }}>
-                <span className="icon-tile"><Icon name="sparkles" size={18} /></span>
+                <span className="icon-tile purple"><Icon name="sparkles" size={18} /></span>
                 <div>
                   <h3>AI summary</h3>
                   <div className="small muted">
@@ -135,13 +136,13 @@ export function DocumentPage() {
                 <ul className="points">{key_points.map((k) => <li key={k}>{k}</li>)}</ul>
               </>
             )}
-            {doc.note && <div className="check" style={{ marginTop: 24 }}><Icon name="alert" size={17} /> {doc.note}</div>}
+            {doc.note && <div className="check amber" style={{ marginTop: 24 }}><Icon name="alert" size={17} /> {doc.note}</div>}
           </div>
 
           <div className="card">
             <div className="card-head">
               <div className="row" style={{ gap: 14 }}>
-                <span className="icon-tile"><Icon name="message" size={18} /></span>
+                <span className="icon-tile purple"><Icon name="message" size={18} /></span>
                 <div>
                   <h3>Ask the file</h3>
                   <div className="small muted">Plain-English questions. Every answer shows the page it came from.</div>
@@ -194,21 +195,22 @@ export function DocumentPage() {
         </div>
 
         <aside className="stack">
-          <div className={`card${upcoming ? " ink" : ""}`}>
+          <div className={`card${upcoming ? " tone-blue" : suggested ? " tone-amber" : ""}`}>
             <div className="row" style={{ gap: 14, marginBottom: 22 }}>
-              <span className="icon-tile"><Icon name="calendar" size={18} /></span>
+              <span className={`icon-tile${upcoming ? " blue" : suggested ? " amber" : ""}`}><Icon name="calendar" size={18} /></span>
               <div>
                 <h3>Next hearing</h3>
                 <div className="small muted">
                   {!doc.hearing_date ? "None found in this file"
-                    : doc.hearing_confirmed ? "Confirmed by lawyer"
-                      : `Suggested by AI${doc.hearing_page ? ` · page ${doc.hearing_page}` : ""}`}
+                    : doc.hearing_confirmed ? <span className="text-blue">Confirmed by lawyer</span>
+                      : <span className="text-amber">Suggested by AI{doc.hearing_page ? ` · page ${doc.hearing_page}` : ""} · please confirm</span>}
                 </div>
               </div>
             </div>
             {doc.hearing_date && (
               <>
-                <div style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-.04em", lineHeight: 1.1 }}>
+                <div className={upcoming ? "text-blue" : suggested ? "text-amber" : ""}
+                  style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-.04em", lineHeight: 1.1 }}>
                   {niceDate(doc.hearing_date, "%-d %B %Y")}
                 </div>
                 <div className="small muted" style={{ marginTop: 6 }}>
@@ -231,7 +233,7 @@ export function DocumentPage() {
 
           <div className="card" id="integrity">
             <div className="row" style={{ gap: 14, marginBottom: 22 }}>
-              <span className="icon-tile"><Icon name="fingerprint" size={18} /></span>
+              <span className="icon-tile green"><Icon name="fingerprint" size={18} /></span>
               <div>
                 <h3>Proof &amp; versions</h3>
                 <div className="small muted">SHA-256 fingerprint and a locked copy of every version</div>
@@ -251,7 +253,7 @@ export function DocumentPage() {
               {versions.map((v) => (
                 <div key={v.id}>
                   <div className="row between">
-                    <a href={`/api/documents/${doc.id}/file/${v.version}?dl=1`} style={{ fontWeight: 500 }}>v{v.version} · {v.filename}</a>
+                    <a className="link" href={`/api/documents/${doc.id}/file/${v.version}?dl=1`} style={{ fontWeight: 500 }}>v{v.version} · {v.filename}</a>
                     <span className="small muted nowrap">{filesize(v.size)}</span>
                   </div>
                   <div className="hash" style={{ marginTop: 6 }}>{v.sha256}</div>
@@ -277,7 +279,7 @@ export function DocumentPage() {
                 <button className="btn ghost sm" style={{ height: 46 }} disabled={busy === "version"}>Save</button>
               </div>
             </form>
-            <button className="btn quiet sm" style={{ padding: 0, marginTop: 14 }} title="For the class demo"
+            <button className="btn quiet sm text-red" style={{ padding: 0, marginTop: 14 }} title="For the class demo"
               onClick={() => {
                 if (window.confirm("Demo: overwrite the working copy to show tamper detection?")) {
                   setIntegrity(null);

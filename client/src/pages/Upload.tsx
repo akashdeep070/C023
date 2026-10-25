@@ -7,12 +7,12 @@ import { useFlash } from "../components/Flash";
 import { Icon } from "../components/Icon";
 import { useApi, useTitle } from "../hooks";
 
-const STEPS: [string, string, string][] = [
-  ["fingerprint", "Fingerprint", "A SHA-256 hash proves the file is never changed later."],
-  ["lock", "Locked copy", "A read-only copy is kept, like S3 Object Lock, so it can be restored."],
-  ["scan", "Read", "Text is pulled from PDFs. Photos are read by Groq's vision model."],
-  ["sparkles", "Summarize", "A small Groq model writes a 3-line summary and finds the next hearing."],
-  ["user-check", "You confirm", "The AI suggests. You confirm the date before any reminder goes out."],
+const STEPS: [string, string, string, string][] = [
+  ["fingerprint", "Fingerprint", "A SHA-256 hash proves the file is never changed later.", "green"],
+  ["lock", "Locked copy", "A read-only copy is kept, like S3 Object Lock, so it can be restored.", "green"],
+  ["scan", "Read", "Text is pulled from PDFs. Photos are read by Groq's vision model.", "purple"],
+  ["sparkles", "Summarize", "A small Groq model writes a 3-line summary and finds the next hearing.", "purple"],
+  ["user-check", "You confirm", "The AI suggests. You confirm the date before any reminder goes out.", "amber"],
 ];
 
 export function Upload() {
@@ -108,9 +108,9 @@ export function Upload() {
           <div className="card soft">
             <div className="label" style={{ marginBottom: 20 }}>What happens next</div>
             <div className="list">
-              {STEPS.map(([icon, title, text]) => (
+              {STEPS.map(([icon, title, text, tone]) => (
                 <div className="row" style={{ alignItems: "flex-start", gap: 16 }} key={title}>
-                  <span className="icon-tile" style={{ background: "var(--surface)" }}><Icon name={icon} size={17} /></span>
+                  <span className={`icon-tile ${tone}`}><Icon name={icon} size={17} /></span>
                   <div><h4>{title}</h4><p className="small muted" style={{ marginTop: 4 }}>{text}</p></div>
                 </div>
               ))}

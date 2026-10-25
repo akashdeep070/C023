@@ -26,9 +26,10 @@ app.use(express.json({ limit: "100kb" }));
 
 app.use((req, res, next) => {
   const t0 = performance.now();
+  const route = req.path; // read now: the /api router rewrites req.path before the response finishes
   res.setHeader("X-Served-By", INSTANCE);
   res.on("finish", () => {
-    if (req.path.startsWith("/api") && req.path !== "/api/meta") record(performance.now() - t0, res.statusCode);
+    if (route.startsWith("/api") && route !== "/api/meta") record(performance.now() - t0, res.statusCode);
   });
   next();
 });

@@ -30,6 +30,22 @@ The app uses a SaaS-style shell: a sidebar menu with counts, and a menu button t
 icon rail (or opens it as a drawer on phones). The top bar has search (press `/`), the serving
 instance, and hearing alerts.
 
+### Color coding
+
+The UI follows Vercel's Geist design language: Geist and Geist Mono fonts, the Geist gray scale, black
+primary buttons and a blue focus ring. Grays carry the layout, and color only marks meaning:
+
+| Color | Means | Where you see it |
+| --- | --- | --- |
+| Green | Done or healthy | Reviewed files, paid invoices, verified fingerprints, met SLAs, healthy checks |
+| Amber | Needs a person | Awaiting review, AI-suggested dates to confirm, money still owed, local AI fallback |
+| Red | Error or risk | Integrity alerts, tampering, overdue invoices, missed SLAs |
+| Blue | Scheduled, links and focus | Confirmed hearings, uploads, reminders, the activity chart |
+| Purple | AI | Summaries, Ask the file answers, AI steps in the pipeline |
+
+Every color is paired with a text label, so nothing relies on color alone. Badge text uses the
+darker shade of each color and passes WCAG AA contrast.
+
 ## Run it locally
 
 Needs Node.js 22.13 or newer.
