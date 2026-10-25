@@ -26,6 +26,9 @@ export function log(action: string, detail = "", documentId: number | null = nul
     now(), action, detail, documentId, clientId, actor, matterId);
 }
 
+/** Who wrote the summary, and why Groq didn't if it failed. */
+export const summarizedBy = (a: Analysis) => (a.source === "groq" ? "Groq" : a.error ? `local reader. ${a.error}` : "local reader");
+
 export const sha256 = (data: Buffer) => createHash("sha256").update(data).digest("hex");
 
 /** Write the working copy and a read-only locked copy. */
@@ -102,7 +105,7 @@ export async function ingest(data: Buffer, filename: string, opts: IngestOptions
 
   log(version === 1 ? "Uploaded" : "New version", `${filename} · v${version} · SHA-256 ${digest.slice(0, 12)}…`,
     documentId, opts.clientId ?? null, opts.actor ?? "Lawyer");
-  log("AI summary", `Summarized by ${analysis.source === "groq" ? "Groq" : "local reader"}`, documentId, null, "Automation");
+  log("AI summary", `Summarized by ${summarizedBy(analysis)}`, documentId, null, "Automation");
   if (fields.hearing_date) {
     log("Hearing date found", `${fields.hearing_date} on page ${fields.hearing_page ?? "?"} · waiting for lawyer to confirm`,
       documentId, null, "Automation");

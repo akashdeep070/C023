@@ -226,9 +226,9 @@ api.post("/documents/:id/reanalyze", async (req, res) => {
        hearing_date = ?, hearing_page = ?, hearing_confirmed = 0, updated_at = ? WHERE id = ?`,
     result.summary, JSON.stringify(result.key_points), result.source, result.parties,
     result.hearing_date, result.hearing_page, vault.now(), docId);
-  vault.log("AI summary", "Re-read by " + (result.source === "groq" ? "Groq" : "local reader"), docId, null, "Automation");
+  vault.log("AI summary", "Re-read by " + vault.summarizedBy(result), docId, null, "Automation");
   res.json(result.error
-    ? { message: "Groq was unreachable, so the local reader was used.", kind: "error" }
+    ? { message: `${result.error} The local reader was used instead.`, kind: "error" }
     : { message: "Summary refreshed." });
 });
 
@@ -413,6 +413,8 @@ registerDiary(api);
 registerDrafts(api);
 api.get("/activity", (_req, res) => res.json(recentActivity(200)));
 api.get("/status", (_req, res) => res.json(status()));
+// A one-token Groq request, run only when someone presses "Test Groq"
+api.post("/ai/check", async (_req, res) => res.json({ enabled: ai.enabled(), health: await ai.check() }));
 api.use((_req, _res, next) => next(new HttpError(404, "Not found")));
 
 app.use("/api", api);

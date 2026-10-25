@@ -142,8 +142,17 @@ The repo is ready for Vercel: the React app is served from Vercel's CDN, and the
 1. Go to [vercel.com/new](https://vercel.com/new) and import the GitHub repo **akashdeep070/C023**.
 2. Set **Project Name** to **`lex-ai-legal-vault`**. The app will live at `https://lex-ai-legal-vault.vercel.app`, if that name is free.
 3. Leave the build settings as they are; `vercel.json` sets them.
-4. Optional: under **Environment Variables**, add `GROQ_API_KEY`.
+4. Under **Environment Variables**, add `GROQ_API_KEY` with your key from [console.groq.com/keys](https://console.groq.com/keys). Optional: without it, the local reader is used.
 5. Click **Deploy**.
+
+**Turning on Groq after the first deploy:**
+
+1. In the Vercel project, open **Settings → Environment Variables**.
+2. Add `GROQ_API_KEY` and paste the key (it starts with `gsk_`). Tick **Production** and **Preview**, then **Save**.
+3. Open **Deployments**, click **⋯** on the latest one and choose **Redeploy**. Vercel only passes new variables to new deployments.
+4. Open the app's **Status & SLA** page. The **Groq AI** card tests the key and shows **Working**, or says exactly what is wrong. The sidebar shows **Groq connected**.
+
+The key stays on the server: the browser never sees it. Stray spaces or quotes pasted with the key are ignored.
 
 If the code is not on the repo's default branch, set **Settings → Git → Production Branch** to the branch that has it, or merge it first.
 
@@ -405,7 +414,8 @@ nginx.conf              Load balancing with failover
 | Problem | Fix |
 | --- | --- |
 | `node:sqlite` not found | Use Node.js 22.13 or newer (`node -v`) |
-| Sidebar says **Local reader** | No `GROQ_API_KEY` is set, or Groq is unreachable. The app keeps working with keyword and date matching |
+| Sidebar says **Local reader** | No `GROQ_API_KEY` is set. The app keeps working with keyword and date matching. On Vercel, add the key and **redeploy** |
+| Sidebar says **Groq not working** | Open **Status & SLA**: the Groq AI card gives the reason. *Rejected the API key*: copy the key again from console.groq.com and redeploy. *Does not offer the model*: set `GROQ_MODEL` to a current Groq model. *Rate limit*: wait a minute. Files read in the meantime say why in their activity log; press **Re-read** once Groq works |
 | A PDF shows "no text layer" | It is a scanned image. Upload the pages as photos so the vision model can read them |
 | Port 3000 or 5173 is busy | `PORT=3001 npm start`, or stop the other process |
 | Want fresh demo data | Stop the app and delete the `data/` folder. Sample dates are relative to today |

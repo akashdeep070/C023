@@ -1,5 +1,7 @@
-import { useEffect } from "react";
-import type { Status } from "../../../shared/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { niceTime } from "../../../shared/format";
+import type { AiHealth, Status } from "../../../shared/types";
+import { api } from "../api";
 import { Loading, PageHead } from "../components/common";
 import { Icon } from "../components/Icon";
 import { useApi, useTitle } from "../hooks";
@@ -21,7 +23,29 @@ export function StatusPage() {
     return () => clearInterval(t);
   }, [reload]);
 
+  const [tested, setTested] = useState<AiHealth | null>(null);
+  const [testing, setTesting] = useState(false);
+  const testGroq = useCallback(async () => {
+    setTesting(true);
+    try {
+      setTested((await api.post<{ health: AiHealth | null }>("/ai/check")).health);
+    } finally {
+      setTesting(false);
+    }
+  }, []);
+  // Test once when the page opens, so a wrong key shows up straight away
+  const autoTested = useRef(false);
+  useEffect(() => {
+    if (s?.ai.enabled && !s.ai.health && !autoTested.current) {
+      autoTested.current = true;
+      testGroq();
+    }
+  }, [s, testGroq]);
+
   if (!s) return <Loading error={error} />;
+  // On Vercel the test and the poll can land on different instances: show the newer result
+  const groq = [tested, s.ai.health].filter((h): h is AiHealth => !!h).sort((a, b) => b.at.localeCompare(a.at))[0] ?? null;
+  const groqFailing = s.ai.enabled && groq?.ok === false;
   const rows: [string, string, string, boolean, number][] = [
     ["Response time (P95)", "< 2 s", `${s.p95_ms.toFixed(0)} ms`, s.p95_ms < 2000, s.p95_ms / 2000],
     ["Average / P99", "Report", `${s.avg_ms.toFixed(0)} / ${s.p99_ms.toFixed(0)} ms`, true, s.p99_ms / 2000],
@@ -55,7 +79,7 @@ export function StatusPage() {
         </div>
         <div className="card kpi">
           <div className="label">AI</div>
-          <div className={`num ${s.ai.enabled ? "" : "amber"}`}>{s.ai.enabled ? "Groq" : "Local"}</div>
+          <div className={`num ${!s.ai.enabled ? "amber" : groqFailing ? "red" : ""}`}>{!s.ai.enabled ? "Local" : groqFailing ? "Error" : "Groq"}</div>
           <div className="kpi-sub mono" style={{ wordBreak: "break-all" }}>{s.ai.enabled ? s.ai.model : "Set GROQ_API_KEY"}</div>
         </div>
       </div>
@@ -82,6 +106,40 @@ export function StatusPage() {
         </div>
 
         <aside className="stack">
+          <div className={`card${!s.ai.enabled ? " tone-amber" : groqFailing ? " tone-red" : ""}`} id="groq">
+            <div className="card-head" style={{ marginBottom: 16 }}>
+              <div>
+                <h3>Groq AI</h3>
+                <div className="small muted" style={{ marginTop: 4 }}>Summaries, next dates and answers</div>
+              </div>
+              {!s.ai.enabled ? <span className="badge amber">Not set up</span>
+                : !groq ? <span className="badge">Not tested</span>
+                  : groq.ok ? <span className="badge green"><Icon name="check" size={12} /> Working</span>
+                    : <span className="badge red">Not working</span>}
+            </div>
+            {s.ai.enabled ? (
+              <>
+                {groqFailing && <div className="check bad" style={{ marginBottom: 16 }}><Icon name="alert" size={17} /><span>{groq!.error}</span></div>}
+                {groq?.ok && <p className="small muted" style={{ marginBottom: 16 }}>Answered in {groq.ms} ms · {niceTime(groq.at)}</p>}
+                <dl className="kv" style={{ gridTemplateColumns: "64px 1fr", margin: "0 0 18px" }}>
+                  <dt>Text</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{s.ai.model}</dd>
+                  <dt>Vision</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{s.ai.vision_model}</dd>
+                </dl>
+                <button className="btn ghost sm" onClick={testGroq} disabled={testing}>
+                  <Icon name="refresh" size={14} /> {testing ? "Testing…" : "Test Groq"}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="small muted">Without a key, a local reader writes the summaries and finds dates. To use Groq:</p>
+                <ol className="steps small">
+                  <li>Get a free key at <a className="link" href="https://console.groq.com/keys" target="_blank" rel="noreferrer">console.groq.com/keys</a>.</li>
+                  <li><b>On Vercel:</b> Project → Settings → Environment Variables. Add <span className="mono">GROQ_API_KEY</span>, then redeploy.</li>
+                  <li><b>On your computer:</b> put it in <span className="mono">.env</span> and restart the app.</li>
+                </ol>
+              </>
+            )}
+          </div>
           <div className="card">
             <div className="label" style={{ marginBottom: 20 }}>Incident severity &amp; response</div>
             <div className="list">

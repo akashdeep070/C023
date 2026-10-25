@@ -118,7 +118,7 @@ export interface Counts {
 
 export interface Meta {
   instance: string;
-  ai: { enabled: boolean; model: string; vision_model: string };
+  ai: AiStatus;
   counts: Counts;
   max_upload_mb: number;
 }
@@ -134,8 +134,13 @@ export interface Status {
   p95_ms: number;
   p99_ms: number;
   checks: { database: boolean; storage: boolean };
-  ai: { enabled: boolean; model: string; vision_model: string };
+  ai: AiStatus;
 }
+
+/** The latest Groq call on the instance that answered. */
+export interface AiHealth { ok: boolean; at: string; ms: number; model: string; error: string }
+
+export interface AiStatus { enabled: boolean; model: string; vision_model: string; health: AiHealth | null }
 
 export interface Task {
   icon: string;
