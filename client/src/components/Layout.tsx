@@ -100,7 +100,7 @@ export function Layout() {
         <div className="side-top">
           <Link className="brand" to="/">
             <span className="mark"><Icon name="logo" size={18} stroke={1.8} /></span>
-            <span className="brand-text"><b>LEX AI</b></span>
+            <span className="brand-text"><b>LEX AI</b><small>Legal operating system</small></span>
           </Link>
         </div>
 

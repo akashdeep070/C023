@@ -1,0 +1,415 @@
+<!doctype html>
+<!--
+  LEX AI pitch deck, 10 slides at 1280 × 720.
+  Edit this file, then run `npm run deck` to build docs/pitch-deck.html (one self-contained file)
+  and docs/pitch-deck.pdf. Screenshots live in docs/deck/shots.
+  Team names: search for "Member name" (slide 2).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LEX AI · Legal operating system</title>
+<style>
+@font-face { font-family: "Inter Tight"; font-weight: 100 900; font-display: block;
+  src: url("../../node_modules/@fontsource-variable/inter-tight/files/inter-tight-latin-wght-normal.woff2") format("woff2"); }
+@font-face { font-family: "Geist Mono"; font-weight: 400; font-display: block;
+  src: url("../../node_modules/@fontsource/geist-mono/files/geist-mono-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Geist Mono"; font-weight: 500; font-display: block;
+  src: url("../../node_modules/@fontsource/geist-mono/files/geist-mono-latin-500-normal.woff2") format("woff2"); }
+
+:root {
+  --ink: #292929;
+  --stage: #f6f6f6;
+  --card: #fff;
+  --line: color-mix(in srgb, var(--ink) 12%, transparent);
+  --hair: color-mix(in srgb, var(--ink) 6%, transparent);
+  --wash: color-mix(in srgb, var(--ink) 5%, transparent);
+  --muted: #6d6d6d;
+  --primary: #305dde;
+  --green: #047857; --amber: #b45309; --red: #b91c1c; --purple: #6d28d9;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .06);
+  --float: 0 1px 2px rgba(0, 0, 0, .08), 0 8px 24px rgba(0, 0, 0, .08);
+  --z: 1;
+}
+* { box-sizing: border-box; }
+html { background: #e9e9e9; }
+body { margin: 0; font: 400 16px/1.5 "Inter Tight", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+.deck { display: grid; gap: 28px; justify-content: center; padding: 28px 0 64px; }
+
+/* ------------------------------------------------------------ slide frame */
+.slide { width: 1280px; height: 720px; zoom: var(--z); position: relative; overflow: hidden; background: var(--stage);
+         padding: 40px 56px 44px; display: flex; flex-direction: column; gap: 22px; border-radius: 6px; box-shadow: var(--float); }
+.top { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); height: 22px; flex-shrink: 0; }
+.top .brand { color: var(--ink); font-weight: 500; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+.top .num { margin-left: auto; font-variant-numeric: tabular-nums; }
+.mark { width: 22px; height: 22px; border-radius: 7px; corner-shape: squircle; background: var(--ink); display: grid; place-items: center; }
+.mark svg { width: 13px; height: 13px; }
+.eyebrow { font-size: 12px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+h1, h2, h3 { margin: 0; font-weight: 500; text-wrap: balance; }
+h2 { font-size: 36px; letter-spacing: -.035em; line-height: 1.08; }
+h3 { font-size: 17px; letter-spacing: -.015em; line-height: 1.3; }
+p { margin: 0; }
+.lede { font-size: 17px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+.k { color: var(--ink); font-weight: 500; }
+
+/* ------------------------------------------------------------ feature slides */
+.feature { flex: 1; min-height: 0; display: grid; grid-template-columns: 372px 1fr; gap: 40px; align-items: center; }
+.copy { display: flex; flex-direction: column; gap: 18px; }
+.before { font-size: 14px; line-height: 1.5; color: var(--muted); padding: 10px 14px; border-radius: 14px; corner-shape: squircle;
+          background: var(--card); border: 1px solid var(--line); }
+.before b { font-weight: 500; color: var(--red); }
+.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 15px; line-height: 1.45; color: var(--muted); }
+.points li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; }
+.points li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 7px; }
+.points.ai li::before { background: var(--purple); }
+
+.shots { position: relative; height: 100%; }
+.shot { position: absolute; margin: 0; background: #fff; border: 1px solid var(--line); border-radius: 18px; corner-shape: squircle;
+        overflow: hidden; box-shadow: var(--float); }
+.shot img { display: block; width: 100%; }
+.cap { position: absolute; font-size: 12.5px; font-weight: 500; color: var(--ink); background: var(--card); border-radius: 999px;
+       padding: 6px 12px; box-shadow: var(--float); display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.cap i { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.cap.red i { background: var(--red); } .cap.green i { background: var(--green); } .cap.purple i { background: var(--purple); } .cap.amber i { background: var(--amber); }
+
+/* ------------------------------------------------------------ cover */
+.cover { flex: 1; display: grid; grid-template-columns: 420px 1fr; gap: 36px; align-items: center; }
+.cover h1 { font-size: 84px; letter-spacing: -.05em; line-height: .95; }
+.cover .tag { font-size: 30px; letter-spacing: -.03em; line-height: 1.15; color: var(--muted); margin-top: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 13px; font-weight: 500; padding: 6px 12px; border-radius: 999px; background: var(--card); box-shadow: var(--shadow), 0 0 0 1px var(--hair); }
+
+/* ------------------------------------------------------------ team */
+.team { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.person { background: var(--card); border: 1px solid var(--line); border-radius: 26px; corner-shape: squircle; box-shadow: var(--shadow);
+          padding: 6px; display: flex; flex-direction: column; }
+.person .face { flex: 1; min-height: 150px; border-radius: 22px; corner-shape: squircle; background: var(--stage); border: 1px solid var(--hair);
+                display: grid; place-items: center; font-size: 40px; font-weight: 400; letter-spacing: -.04em; color: color-mix(in srgb, var(--ink) 35%, transparent); }
+.person .who { padding: 14px 12px 12px; display: grid; gap: 4px; }
+.person .name { font-size: 18px; font-weight: 500; letter-spacing: -.02em; }
+.person .role { font-size: 13.5px; color: var(--primary); font-weight: 500; }
+.person .did { font-size: 13.5px; color: var(--muted); line-height: 1.45; margin-top: 4px; }
+.stack { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13.5px; color: var(--muted); }
+
+/* ------------------------------------------------------------ plates for the last two slides */
+.plate { background: var(--card); border: 1px solid var(--line); border-radius: 26px; corner-shape: squircle; box-shadow: var(--shadow); padding: 24px 26px; }
+.compare { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.compare th { font-size: 13px; font-weight: 500; color: var(--muted); text-align: center; padding: 0 8px 12px; vertical-align: bottom; line-height: 1.3; }
+.compare th:first-child { text-align: left; padding-left: 0; }
+.compare th.us { color: var(--primary); }
+.compare td { padding: 15px 8px; border-top: 1px solid var(--hair); text-align: center; color: var(--muted); }
+.compare td:first-child { text-align: left; padding-left: 0; color: var(--ink); }
+.compare td.us { background: color-mix(in srgb, var(--primary) 6%, white); color: var(--ink); font-weight: 500; }
+.compare tr:first-child td.us { border-radius: 10px 10px 0 0; }
+.y, .h, .n { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.y { background: var(--green); }
+.h { background: linear-gradient(90deg, var(--amber) 50%, color-mix(in srgb, var(--amber) 22%, white) 50%); }
+.n { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.legend { display: flex; gap: 18px; font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+.why { display: grid; gap: 12px; }
+.why .plate { padding: 18px 22px; }
+.why p { font-size: 14px; color: var(--muted); margin-top: 4px; line-height: 1.45; }
+
+.roadmap { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.roadmap h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.roadmap .pill { font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; background: var(--wash); }
+.roadmap ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: 14.5px; color: var(--muted); line-height: 1.4; }
+.roadmap li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; }
+.roadmap .now li::before { content: "✓"; color: var(--green); font-weight: 500; }
+.roadmap .next li::before { content: "→"; color: var(--primary); }
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.strip figure { margin: 0; display: grid; gap: 8px; font-size: 13px; color: var(--muted); }
+.strip .shot { position: static; display: block; border-radius: 14px; }
+.trio { flex: 1; display: grid; grid-template-columns: 1fr 1fr 150px; gap: 20px; align-items: start; align-content: center; }
+.trio > div { display: grid; gap: 14px; }
+.trio .shot { position: static; }
+.trio p { font-size: 14px; color: var(--muted); line-height: 1.45; }
+.close { display: flex; align-items: center; justify-content: space-between; gap: 20px; font-size: 15px; color: var(--muted); }
+.close .thanks { font-size: 22px; color: var(--ink); font-weight: 500; letter-spacing: -.02em; }
+.mono { font-family: "Geist Mono", ui-monospace, monospace; font-size: 13.5px; }
+
+/* ------------------------------------------------------------ screen controls and print */
+.bar { position: fixed; right: 16px; bottom: 16px; display: flex; gap: 8px; z-index: 10; }
+.bar button { font: 500 13px/1 "Inter Tight", sans-serif; height: 34px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+              background: #e9e9e9; border: 0; color: var(--ink); box-shadow: var(--float); }
+.bar button.primary { background: var(--primary); color: #fff; }
+@page { size: 1280px 720px; margin: 0; }
+@media print {
+  html, body { background: none; }
+  .deck { display: block; padding: 0; }
+  .slide { zoom: 1; border-radius: 0; box-shadow: none; break-after: page; }
+  .bar { display: none; }
+}
+</style>
+</head>
+<body>
+<main class="deck">
+
+<!-- ============================================================ 1 cover -->
+<section class="slide" aria-label="Slide 1 of 10">
+  <header class="top"><span class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="#fff"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4"/></svg></span>LEX AI</span><span>Cloud Computing · course project 2026</span><span class="num">01 / 10</span></header>
+  <div class="cover">
+    <div class="copy" style="gap: 26px">
+      <div>
+        <h1>LEX AI</h1>
+        <div class="tag">Legal operating system</div>
+      </div>
+      <p class="lede">One cloud workspace for a small law practice: the hearing diary, every client file read by AI and kept tamper-proof, and court papers that fill themselves in.</p>
+      <div class="chips"><span class="chip">Diary &amp; matters</span><span class="chip">AI on every file</span><span class="chip">Drafting</span><span class="chip">Docker · Vercel · Groq</span></div>
+    </div>
+    <div class="shots">
+      <figure class="shot" style="width: 728px; left: 0; top: 50%; transform: translateY(-50%)"><img src="shots/overview.jpg" alt="LEX AI overview: today's cause list, deadlines, outcomes to record and fees"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 2 team -->
+<!-- Replace each "Member name" with a real name (and the initials under face) -->
+<section class="slide" aria-label="Slide 2 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Team</span><span class="num">02 / 10</span></header>
+  <div class="copy" style="gap: 10px">
+    <h2>The team</h2>
+    <p class="lede">Five of us designed, built and tested LEX AI, from the cloud setup to the court templates.</p>
+  </div>
+  <div class="team" style="flex: 1">
+    <div class="person"><div class="face">01</div><div class="who"><div class="name">Member name</div><div class="role">Lead &amp; cloud</div><div class="did">Architecture, Docker with nginx failover, Vercel deploy, SLA targets</div></div></div>
+    <div class="person"><div class="face">02</div><div class="who"><div class="name">Member name</div><div class="role">Backend &amp; AI</div><div class="did">Express API, SQLite storage, Groq summaries, dates and answers</div></div></div>
+    <div class="person"><div class="face">03</div><div class="who"><div class="name">Member name</div><div class="role">Frontend &amp; design</div><div class="did">React app, the design system, the diary and the draft editor</div></div></div>
+    <div class="person"><div class="face">04</div><div class="who"><div class="name">Member name</div><div class="role">Legal research</div><div class="did">Workflows, limitation periods, court templates and Forms 15D / 26D</div></div></div>
+    <div class="person"><div class="face">05</div><div class="who"><div class="name">Member name</div><div class="role">Testing &amp; docs</div><div class="did">End-to-end tests, tamper and failover drills, README and this deck</div></div></div>
+  </div>
+  <div class="stack"><span class="k">Built with</span> React 19 · TypeScript · Node 22 · Express · SQLite · Docker · nginx · Vercel · Groq (Llama 3.1)</div>
+</section>
+
+<!-- ============================================================ 3 diary -->
+<section class="slide" aria-label="Slide 3 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Diary</span><span class="num">03 / 10</span></header>
+  <div class="feature">
+    <div class="copy">
+      <h2>Never miss a hearing</h2>
+      <p class="before"><b>Today:</b> dates live in a paper diary, outcomes on scraps of paper, and clients ring to ask what happened.</p>
+      <ul class="points">
+        <li><span><span class="k">Cause list</span> for any day, with what happened at the last date</span></li>
+        <li><span><span class="k">Record the outcome</span> and the next date in one form</span></li>
+        <li><span>The next date goes <span class="k">straight into the diary</span></span></li>
+        <li><span>A ready <span class="k">WhatsApp update</span> for the client, in one tap</span></li>
+        <li><span><span class="k">Reminders</span> for today and tomorrow; missing outcomes are flagged</span></li>
+      </ul>
+    </div>
+    <div class="shots">
+      <figure class="shot" style="width: 760px; left: 0; top: 34px"><img src="shots/diary.jpg" alt="Diary with an outcome just recorded and the WhatsApp update ready"></figure>
+      <span class="cap green" style="left: 470px; top: 6px"><i></i>Outcome saved, client update ready</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 4 matters -->
+<section class="slide" aria-label="Slide 4 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Matters</span><span class="num">04 / 10</span></header>
+  <div class="feature">
+    <div class="copy">
+      <h2>Every case in one place</h2>
+      <p class="before"><b>Today:</b> a case is spread across a file cover, a phone gallery and the clerk's memory.</p>
+      <ul class="points">
+        <li><span><span class="k">One workspace per matter:</span> court, stage, parties and the full hearing history</span></li>
+        <li><span>Its <span class="k">documents, deadlines, fees and drafts</span> on the same page</span></li>
+        <li><span><span class="k">Conflict check</span> while you open a matter: is the other side already your client?</span></li>
+        <li><span>An <span class="k">audit trail</span> of who did what, and when</span></li>
+      </ul>
+    </div>
+    <div class="shots">
+      <figure class="shot" style="width: 690px; right: 0; top: 0"><img src="shots/matter.jpg" alt="Matter CS 214/2026 with hearings, deadlines, client and fees"></figure>
+      <figure class="shot" style="width: 520px; left: 0; bottom: 0"><img src="shots/conflict.jpg" alt="New matter form flagging a possible conflict of interest"></figure>
+      <span class="cap red" style="left: 330px; bottom: 236px"><i></i>Conflict flagged as you type</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 5 documents and AI -->
+<section class="slide" aria-label="Slide 5 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Documents &amp; AI</span><span class="num">05 / 10</span></header>
+  <div class="feature">
+    <div class="copy">
+      <h2>Files read by AI, checked by a lawyer</h2>
+      <p class="before"><b>Today:</b> long orders are read end to end just to find the next date.</p>
+      <ul class="points ai">
+        <li><span><span class="k">Upload</span> a PDF, a text file or a photo of a page</span></li>
+        <li><span>A <span class="k">three-sentence summary</span>, the parties and the case number</span></li>
+        <li><span>The <span class="k">next date with its page</span>, added to the diary only after a lawyer checks it</span></li>
+        <li><span><span class="k">Ask the file</span> in plain English; every answer shows its page</span></li>
+        <li><span>Groq's small, fast Llama model, with a <span class="k">local reader</span> when there is no key</span></li>
+      </ul>
+    </div>
+    <div class="shots">
+      <figure class="shot" style="width: 720px; right: 0; top: 0"><img src="shots/document.jpg" alt="Document page with AI summary, key points and the next date found on page 1"></figure>
+      <figure class="shot" style="width: 420px; left: 0; bottom: 0"><img src="shots/ask.jpg" alt="Ask the file: an answer that cites page 1"></figure>
+      <span class="cap purple" style="left: 240px; bottom: 246px"><i></i>Answer cites its page</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 6 proof and cloud -->
+<section class="slide" aria-label="Slide 6 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Proof &amp; cloud</span><span class="num">06 / 10</span></header>
+  <div class="feature">
+    <div class="copy">
+      <h2>Safe, provable, always on</h2>
+      <p class="before"><b>Today:</b> a lost phone or a crashed PC loses everything, and nobody can prove a file wasn't changed.</p>
+      <ul class="points">
+        <li><span>Every version gets a <span class="k">SHA-256 fingerprint</span> and a read-only locked copy</span></li>
+        <li><span><span class="k">Tampering is caught</span> on verify and undone from the locked copy</span></li>
+        <li><span><span class="k">Docker:</span> nginx in front of two app containers; one fails, the other answers</span></li>
+        <li><span><span class="k">Live SLA:</span> P95 latency, error rate and health checks</span></li>
+        <li><span>Paste a <span class="k">Groq key in the browser</span>; the server never stores it</span></li>
+      </ul>
+    </div>
+    <div class="shots">
+      <figure class="shot" style="width: 700px; right: 0; top: 0"><img src="shots/status.jpg" alt="Status and SLA page with live latency, error rate, health and the Groq AI card"></figure>
+      <figure class="shot" style="width: 300px; left: 0; bottom: 0"><img src="shots/integrity.jpg" alt="Proof and versions card: one version changed after upload, the locked copy is safe"></figure>
+      <span class="cap red" style="left: 170px; bottom: 372px"><i></i>Tampering detected</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 7 drafting -->
+<section class="slide" aria-label="Slide 7 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Drafting</span><span class="num">07 / 10</span></header>
+  <div class="feature">
+    <div class="copy">
+      <h2>Drafts that fill themselves in</h2>
+      <p class="before"><b>Today:</b> routine papers are retyped from an old file every time, names and all.</p>
+      <ul class="points">
+        <li><span>A <span class="k">Google Docs-style editor:</span> A4 page, toolbar, outline, autosave</span></li>
+        <li><span><span class="k">Eight templates</span>, including the firm's suit for accounts, Forms 15D and 26D, and eligibility terms</span></li>
+        <li><span>Court, case number, parties and next date <span class="k">filled from the matter</span></span></li>
+        <li><span>What's left is a <span class="k">highlighted blank</span>; fill it once for every copy</span></li>
+        <li><span>Download for <span class="k">Word</span> or print to <span class="k">PDF</span></span></li>
+      </ul>
+    </div>
+    <div class="shots">
+      <figure class="shot" style="width: 520px; left: 0; top: 0"><img src="shots/drafts.jpg" alt="Drafts page: start a new document from a template"></figure>
+      <figure class="shot" style="width: 600px; right: 0; bottom: 0"><img src="shots/editor.jpg" alt="Editor with the suit for accounts on an A4 page and the blanks panel"></figure>
+      <span class="cap amber" style="left: 40px; bottom: 60px"><i></i>Blanks to fill, side by side</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 8 deadlines, billing, mobile -->
+<section class="slide" aria-label="Slide 8 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Deadlines, billing &amp; mobile</span><span class="num">08 / 10</span></header>
+  <div class="copy" style="gap: 10px">
+    <h2>Deadlines, fees, and the court corridor</h2>
+    <p class="lede">Limitation periods worked out with the section cited, invoices that track every rupee, and the whole app on a phone.</p>
+  </div>
+  <div class="trio">
+    <div>
+      <figure class="shot"><img src="shots/deadlines.jpg" alt="Deadlines with the limitation calculator for an s.138 notice"></figure>
+      <p><span class="k">Limitation calculator.</span> CPC, NI Act s.138, Arbitration s.34 and consumer cases, each with its section. Add the result as a deadline.</p>
+    </div>
+    <div>
+      <figure class="shot"><img src="shots/billing.jpg" alt="Invoice with line items, retainer and balance due"></figure>
+      <p><span class="k">Billing.</span> Itemised invoices, retainers and part payments in ₹, with what's still due and a print-to-PDF invoice.</p>
+    </div>
+    <div>
+      <figure class="shot" style="border-radius: 24px"><img src="shots/mobile.jpg" alt="LEX AI overview on a phone"></figure>
+      <p><span class="k">On a phone.</span> The same app, in court.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 9 differentiation -->
+<section class="slide" aria-label="Slide 9 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Differentiation</span><span class="num">09 / 10</span></header>
+  <div class="copy" style="gap: 10px">
+    <h2>What makes LEX AI different</h2>
+    <p class="lede">Built for a one- to five-lawyer office: the diary, the files and the drafts in one place, at the cost of a small server.</p>
+  </div>
+  <div style="flex: 1; display: grid; grid-template-columns: 1fr 330px; gap: 14px; min-height: 0">
+    <div class="plate">
+      <table class="compare">
+        <thead><tr><th></th><th>Paper diary<br>+ WhatsApp</th><th>Cloud drive<br>+ word processor</th><th>Large practice<br>software</th><th class="us">LEX AI</th></tr></thead>
+        <tbody>
+          <tr><td>Hearing diary with outcomes and next dates</td><td><span class="h"></span></td><td><span class="n"></span></td><td><span class="y"></span></td><td class="us"><span class="y"></span></td></tr>
+          <tr><td>AI summary and next date, with the page</td><td><span class="n"></span></td><td><span class="n"></span></td><td><span class="h"></span></td><td class="us"><span class="y"></span></td></tr>
+          <tr><td>Tamper-evident files: fingerprint and locked copy</td><td><span class="n"></span></td><td><span class="h"></span></td><td><span class="h"></span></td><td class="us"><span class="y"></span></td></tr>
+          <tr><td>Drafts filled in from the case</td><td><span class="n"></span></td><td><span class="n"></span></td><td><span class="y"></span></td><td class="us"><span class="y"></span></td></tr>
+          <tr><td>Indian practice built in: limitation, s.138, ₹, WhatsApp</td><td><span class="h"></span></td><td><span class="n"></span></td><td><span class="h"></span></td><td class="us"><span class="y"></span></td></tr>
+          <tr><td>Set up in an afternoon</td><td><span class="y"></span></td><td><span class="y"></span></td><td><span class="n"></span></td><td class="us"><span class="y"></span></td></tr>
+          <tr><td>Cost for a small practice</td><td>Free</td><td>Low</td><td>High</td><td class="us">Low</td></tr>
+        </tbody>
+      </table>
+      <div class="legend"><span><span class="y"></span>Yes</span><span><span class="h"></span>In part, or by hand</span><span><span class="n"></span>No</span></div>
+    </div>
+    <div class="why">
+      <div class="plate"><h3>AI that shows its source</h3><p>Every answer cites its page, and no AI-read date enters the diary until a lawyer checks it.</p></div>
+      <div class="plate"><h3>Proof, not trust</h3><p>A fingerprint and a locked copy of every version, so a changed file is caught and restored.</p></div>
+      <div class="plate"><h3>Low compute by design</h3><p>A small AI model, one call per upload, short prompts, and a local reader when there's no key.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 10 present and future -->
+<section class="slide" aria-label="Slide 10 of 10">
+  <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Present &amp; future work</span><span class="num">10 / 10</span></header>
+  <div class="copy" style="gap: 10px">
+    <h2>Where LEX AI is, and where it goes next</h2>
+  </div>
+  <div class="roadmap" style="flex: none">
+    <div class="plate now">
+      <h3>Working today <span class="pill" style="color: var(--green)">MVP</span></h3>
+      <ul>
+        <li>Diary, cause list, outcomes and WhatsApp client updates</li>
+        <li>Matters with hearing history and a conflict check</li>
+        <li>Upload, AI summary, next date with its page, ask the file</li>
+        <li>SHA-256 fingerprints, locked copies, tamper detect and restore</li>
+        <li>Draft editor with 8 templates filled from the matter</li>
+        <li>Limitation calculator, deadlines and billing</li>
+        <li>Docker with nginx failover, Vercel deploy, live SLA page</li>
+      </ul>
+    </div>
+    <div class="plate next">
+      <h3>Next <span class="pill" style="color: var(--primary)">Roadmap</span></h3>
+      <ul>
+        <li>Sign-in with roles for lawyers, juniors and clerks</li>
+        <li>Production storage: a managed database and S3 Object Lock</li>
+        <li>Import cause lists and next dates from eCourts</li>
+        <li>Send updates through the WhatsApp Business API and SMS</li>
+        <li>Calendar sync with Google and Outlook</li>
+        <li>Hindi and regional languages, with OCR for scanned files</li>
+        <li>A client portal for uploads and case updates</li>
+      </ul>
+    </div>
+  </div>
+  <div class="strip">
+    <figure><span class="shot"><img src="shots/diary.jpg" alt="Diary"></span>Diary and client updates</figure>
+    <figure><span class="shot"><img src="shots/document.jpg" alt="Document with AI summary"></span>AI summary and next date</figure>
+    <figure><span class="shot"><img src="shots/editor.jpg" alt="Draft editor"></span>Drafting from templates</figure>
+    <figure><span class="shot"><img src="shots/status.jpg" alt="Status and SLA"></span>Live SLA and Groq status</figure>
+  </div>
+  <div class="close"><span class="thanks">Thank you. Questions?</span><span class="mono">github.com/akashdeep070/C023</span></div>
+</section>
+
+</main>
+
+<div class="bar" aria-label="Deck controls">
+  <button type="button" onclick="window.print()" class="primary">Save as PDF</button>
+</div>
+<script>
+  // Fit slides to the window on screen; arrow keys and Page Up/Down move a slide at a time
+  const slides = [...document.querySelectorAll(".slide")];
+  const fit = () => document.documentElement.style.setProperty("--z", Math.min(1, (innerWidth - 48) / 1280));
+  addEventListener("resize", fit);
+  fit();
+  addEventListener("keydown", (e) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, PageDown: 1, " ": 1, ArrowLeft: -1, ArrowUp: -1, PageUp: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const now = slides.findIndex((s) => s.getBoundingClientRect().top > -innerHeight / 3);
+    slides[Math.max(0, Math.min(slides.length - 1, now + step))].scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+</script>
+</body>
+</html>
