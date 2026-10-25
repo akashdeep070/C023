@@ -42,7 +42,7 @@ export function status(): Status {
     p95_ms: percentile(lat, 95),
     p99_ms: percentile(lat, 99),
     checks: { database, storage },
-    ai: { enabled: ai.enabled(), model: ai.textModel(), vision_model: ai.visionModel() },
+    ai: { enabled: ai.enabled(), model: ai.textModel(), vision_model: ai.visionModel(), health: ai.health() },
   };
 }
 

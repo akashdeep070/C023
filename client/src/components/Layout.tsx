@@ -31,6 +31,11 @@ const CRUMBS: [RegExp, string][] = [
   [/^\/billing\/\d+/, "Invoice"], [/^\/billing/, "Billing"], [/^\/activity/, "Audit log"], [/^\/status/, "Status & SLA"],
 ];
 
+// Pulse color and label for the AI engine in the sidebar
+const AI_STATE = {
+  ok: ["green", "Groq connected"], ready: ["green", "Groq ready"], error: ["red", "Groq not working"], local: ["amber", "Local reader"],
+} as const;
+
 const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
 
 export function Layout() {
@@ -82,6 +87,8 @@ export function Layout() {
   };
 
   const crumb = CRUMBS.find(([rx]) => rx.test(location.pathname))?.[1] ?? "Lex AI";
+  const ai = meta?.ai;
+  const aiState = !ai?.enabled ? "local" : !ai.health ? "ready" : ai.health.ok ? "ok" : "error";
   const counts = meta?.counts;
   const instance = meta?.instance ?? "…";
 
@@ -119,15 +126,15 @@ export function Layout() {
         </nav>
 
         <div className="side-foot">
-          <div className="engine">
-            <span className={`pulse ${meta?.ai.enabled ? "green" : "amber"}`} />
+          <Link className="engine" to="/status" title={ai?.health?.error || "AI status"}>
+            <span className={`pulse ${AI_STATE[aiState][0]}`} />
             <div className="side-label">
-              <div className="small" style={{ fontWeight: 500 }}>{meta?.ai.enabled ? "Groq connected" : "Local reader"}</div>
+              <div className="small" style={{ fontWeight: 500 }}>{AI_STATE[aiState][1]}</div>
               <div className="mono faint" style={{ fontSize: 11 }}>
-                {meta?.ai.enabled ? meta.ai.model.split("/").pop() : "add GROQ_API_KEY"}
+                {aiState === "local" ? "add GROQ_API_KEY" : aiState === "error" ? "open Status to fix" : ai!.model.split("/").pop()}
               </div>
             </div>
-          </div>
+          </Link>
           <div className="me">
             <span className="avatar">RM</span>
             <div className="side-label">

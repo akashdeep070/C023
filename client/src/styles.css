@@ -105,6 +105,7 @@ p { margin: 0; }
 .side-foot { margin-top: auto; display: grid; gap: 10px; }
 .engine, .me { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-sm); white-space: nowrap; }
 .engine { background: var(--bg); border: 1px solid var(--line); }
+a.engine:hover { border-color: var(--line-strong); }
 .me { border: 1px solid var(--line); }
 .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center;
           font: 600 12px/1 var(--sans); letter-spacing: .02em; flex-shrink: 0; }
@@ -394,6 +395,7 @@ details.page-text pre { margin: 0; padding: 0 18px 18px; white-space: pre-wrap; 
 .meter { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .meter i { display: block; height: 100%; background: var(--green-700); border-radius: 999px; }
 .meter.red i { background: var(--red-700); }
+ol.steps { margin: 12px 0 0; padding-left: 18px; display: grid; gap: 8px; }
 
 /* ------------------------------------------------------------ control panel */
 

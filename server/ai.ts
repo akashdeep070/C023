@@ -5,38 +5,93 @@
 // When no GROQ_API_KEY is set (or Groq is unreachable) the local fallback
 // keeps the demo working with simple keyword and date matching.
 
-import { isValidIsoDate, isoDate } from "../shared/format.js";
-import type { Page } from "../shared/types.js";
+import { isValidIsoDate, isoDate, isoDateTime } from "../shared/format.js";
+import type { AiHealth, Page } from "../shared/types.js";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const TIMEOUT_MS = 30_000;
+// Vercel stops the function after 30 s (vercel.json), so give up on Groq well before that
+// and let the local reader answer instead
+const TIMEOUT_MS = 20_000;
 
 export const DOC_TYPES = ["Order", "Judgment", "Petition", "Evidence", "Contract",
   "Notice", "Identity", "Affidavit", "Other"];
 
-export const enabled = () => Boolean(process.env.GROQ_API_KEY?.trim());
+/** The key as pasted into .env or the Vercel dashboard, without stray spaces or quotes. */
+const apiKey = () => (process.env.GROQ_API_KEY ?? "").trim().replace(/^["']+|["']+$/g, "");
+
+export const enabled = () => apiKey().length > 0;
 export const textModel = () => process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 export const visionModel = () => process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
 
 type Message = { role: "system" | "user"; content: string | unknown[] };
 
-async function chat(messages: Message[], opts: { model?: string; json?: boolean; maxTokens?: number } = {}) {
-  const res = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${process.env.GROQ_API_KEY!.trim()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: opts.model ?? textModel(),
-      messages,
-      temperature: 0.2,
-      max_tokens: opts.maxTokens ?? 400,
-      ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-    }),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${(await res.text()).slice(0, 160)}`);
-  const data = (await res.json()) as { choices: { message: { content: string } }[] };
-  return data.choices[0].message.content;
+/** A Groq failure, worded as what to do about it. */
+class GroqError extends Error {}
+
+let last: AiHealth | null = null;
+/** How the latest Groq call on this instance went, or null before the first one. */
+export const health = () => last;
+
+function explain(status: number, body: string, model: string): string {
+  let code = "";
+  let message = body;
+  try {
+    const e = (JSON.parse(body) as { error?: { code?: string; message?: string } }).error;
+    code = e?.code ?? "";
+    message = e?.message ?? body;
+  } catch { /* not JSON */ }
+  const setting = model === visionModel() ? "GROQ_VISION_MODEL" : "GROQ_MODEL";
+  if (status === 401 || code === "invalid_api_key") return "Groq rejected the API key. Check GROQ_API_KEY, then redeploy.";
+  if (status === 404 || code === "model_not_found" || code === "model_decommissioned") {
+    return `Groq does not offer the model ${model}. Set ${setting} to a current model.`;
+  }
+  if (status === 429) return "Groq's rate limit was reached. Wait a minute and try again.";
+  if (status === 413) return "The request was too large for Groq.";
+  if (status >= 500) return `Groq had a server error (${status}). Try again shortly.`;
+  return `Groq returned ${status}: ${message.slice(0, 160)}`;
 }
+
+async function chat(messages: Message[], opts: { model?: string; json?: boolean; maxTokens?: number } = {}) {
+  const model = opts.model ?? textModel();
+  const t0 = performance.now();
+  const done = (error = "") => { last = { ok: !error, at: isoDateTime(), ms: Math.round(performance.now() - t0), model, error }; };
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: 0.2,
+        max_tokens: opts.maxTokens ?? 400,
+        ...(opts.json ? { response_format: { type: "json_object" } } : {}),
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    }).catch((err: Error) => {
+      throw new GroqError(err.name === "TimeoutError"
+        ? `Groq did not answer within ${TIMEOUT_MS / 1000} seconds.`
+        : `Could not reach api.groq.com (${(err.cause as Error | undefined)?.message ?? err.message}).`);
+    });
+    if (!res.ok) throw new GroqError(explain(res.status, await res.text(), model));
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content;
+    if (typeof content !== "string") throw new GroqError("Groq sent back an empty answer.");
+    done();
+    return content;
+  } catch (err) {
+    done(err instanceof GroqError ? err.message : String(err));
+    throw err;
+  }
+}
+
+/** One tiny request that proves the key and the model work. */
+export async function check(): Promise<AiHealth | null> {
+  if (!enabled()) return null;
+  await chat([{ role: "user", content: "Reply with OK." }], { maxTokens: 1 }).catch(() => {});
+  return last;
+}
+
+const reason = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200);
 
 /** Join pages with [Page n] markers, stopping at `limit` characters. */
 function paged(pages: Page[], limit: number): string {
@@ -188,7 +243,7 @@ function topPages(question: string, pages: Page[], k = 3): Page[] {
 
 // ---------------------------------------------------------------- public API
 
-const ANALYZE_PROMPT = `You read legal documents for a small Indian law practice.
+const analyzePrompt = () => `You read legal documents for a small Indian law practice.
 Reply with JSON only, using exactly these keys:
 {"summary": "3 short sentences in plain English: the facts, what was ordered or asked, and the next step",
  "key_points": ["up to 4 short points, each under 20 words"],
@@ -205,7 +260,7 @@ export async function analyze(pages: Page[]): Promise<Analysis> {
   if (!enabled() || !pages.some(([, t]) => t.trim())) return local;
   try {
     const raw = await chat(
-      [{ role: "system", content: ANALYZE_PROMPT }, { role: "user", content: paged(pages, 9000) }],
+      [{ role: "system", content: analyzePrompt() }, { role: "user", content: paged(pages, 9000) }],
       { json: true, maxTokens: 450 },
     );
     const data = JSON.parse(raw) as Record<string, unknown>;
@@ -225,7 +280,7 @@ export async function analyze(pages: Page[]): Promise<Analysis> {
     }
     return out;
   } catch (err) {
-    return { ...local, error: String(err).slice(0, 200) }; // network, quota, bad JSON: fall back quietly
+    return { ...local, error: reason(err) }; // network, key, quota, bad JSON: fall back to the local reader
   }
 }
 
@@ -249,7 +304,7 @@ export async function ask(question: string, pages: Page[]) {
         source: "groq" as const,
       };
     } catch (err) {
-      return { ...localAnswer(question, pages), source: "local" as const, error: String(err).slice(0, 200) };
+      return { ...localAnswer(question, pages), source: "local" as const, error: reason(err) };
     }
   }
   return { ...localAnswer(question, pages), source: "local" as const };
@@ -269,6 +324,6 @@ export async function readImage(data: Buffer, mime: string): Promise<{ text: str
     }], { model: visionModel(), maxTokens: 1500 });
     return { text: text.trim(), note: "" };
   } catch (err) {
-    return { text: "", note: `The AI could not read this image (${String(err).slice(0, 120)}).` };
+    return { text: "", note: `The AI could not read this image. ${reason(err)}` };
   }
 }
