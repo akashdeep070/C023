@@ -12,12 +12,18 @@ import { extractPages, mimeFor } from "./extract.js";
 export const now = () => isoDateTime();
 
 export function log(action: string, detail = "", documentId: number | null = null, clientId: number | null = null,
-                    actor = "Lawyer"): number {
-  if (documentId && !clientId) {
-    clientId = get<{ client_id: number | null }>("SELECT client_id FROM documents WHERE id = ?", documentId)?.client_id ?? null;
+                    actor = "Lawyer", matterId: number | null = null): number {
+  if (documentId) {
+    const doc = get<{ client_id: number | null; matter_id: number | null }>(
+      "SELECT client_id, matter_id FROM documents WHERE id = ?", documentId);
+    clientId ??= doc?.client_id ?? null;
+    matterId ??= doc?.matter_id ?? null;
   }
-  return run("INSERT INTO audit (ts, action, detail, document_id, client_id, actor) VALUES (?, ?, ?, ?, ?, ?)",
-    now(), action, detail, documentId, clientId, actor);
+  if (matterId && !clientId) {
+    clientId = get<{ client_id: number | null }>("SELECT client_id FROM matters WHERE id = ?", matterId)?.client_id ?? null;
+  }
+  return run("INSERT INTO audit (ts, action, detail, document_id, client_id, actor, matter_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    now(), action, detail, documentId, clientId, actor, matterId);
 }
 
 export const sha256 = (data: Buffer) => createHash("sha256").update(data).digest("hex");
@@ -38,6 +44,7 @@ export function saveBlob(data: Buffer, filename: string): { digest: string; stor
 interface IngestOptions {
   title: string;
   clientId?: number | null;
+  matterId?: number | null;
   caseNumber?: string;
   docType?: string;
   documentId?: number;
@@ -76,6 +83,7 @@ export async function ingest(data: Buffer, filename: string, opts: IngestOptions
       ...fields,
       title: opts.title,
       client_id: opts.clientId ?? null,
+      matter_id: opts.matterId ?? null,
       case_number: opts.caseNumber || analysis.case_number,
       doc_type: opts.docType || analysis.doc_type || "Other",
       created_at: ts,

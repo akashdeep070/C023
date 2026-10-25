@@ -17,6 +17,7 @@ export interface Doc {
   id: number;
   title: string;
   client_id: number | null;
+  matter_id: number | null;
   case_number: string;
   doc_type: string;
   parties: string;
@@ -33,6 +34,7 @@ export interface Doc {
   updated_at: string;
   client_name?: string | null;
   client_code?: string | null;
+  matter_title?: string | null;
 }
 
 export interface DocRow extends Doc {
@@ -62,6 +64,7 @@ export interface AuditRow {
   detail: string;
   document_id: number | null;
   client_id: number | null;
+  matter_id: number | null;
   actor: string;
   doc_title?: string | null;
   client_name?: string | null;
@@ -102,7 +105,12 @@ export interface InvoiceTotals {
 export interface Counts {
   documents: number;
   clients: number;
-  to_confirm: number;
+  matters: number;
+  today: number;        // hearings listed today
+  to_confirm: number;   // AI-found dates not yet in the diary
+  unrecorded: number;   // past hearings with no outcome written down
+  overdue: number;      // open deadlines past their date
+  due_week: number;     // open deadlines in the next 7 days
   reminders: number;
   alerts: number;
   invoices_due: number;
@@ -131,6 +139,7 @@ export interface Status {
 
 export interface Task {
   icon: string;
+  tone: "amber" | "red" | "blue" | "purple" | "";
   title: string;
   sub: string;
   to?: string;
@@ -138,14 +147,98 @@ export interface Task {
   cta: string;
 }
 
+// ---------------------------------------------------------------- case diary
+
+export interface Matter {
+  id: number;
+  client_id: number | null;
+  case_number: string;
+  title: string;            // e.g. "Ananya Sharma vs Deepak Sharma"
+  court: string;
+  our_side: string;         // Plaintiff, Applicant, Complainant, Defendant...
+  stage: string;            // Written statement, Evidence, Arguments...
+  opposite_party: string;
+  opposite_counsel: string;
+  status: "Open" | "Disposed";
+  created_at: string;
+  client_name?: string | null;
+}
+
+export interface MatterRow extends Matter {
+  next_hearing: string | null;
+  next_purpose: string | null;
+  last_date: string | null;
+  last_outcome: string | null;
+  open_deadlines: number;
+  docs: number;
+}
+
+export interface Hearing {
+  id: number;
+  matter_id: number;
+  date: string;
+  purpose: string;
+  outcome: string;          // written after the hearing
+  notes: string;
+  document_id: number | null;
+  reminder_sent: number;
+  created_at: string;
+  // joined from the matter and the previous hearing
+  case_number: string;
+  matter_title: string;
+  court: string;
+  stage: string;
+  client_id: number | null;
+  client_name: string | null;
+  client_phone: string | null;
+  prev_date: string | null;
+  prev_outcome: string | null;
+}
+
+export interface Deadline {
+  id: number;
+  matter_id: number | null;
+  title: string;
+  due: string;
+  rule: string;
+  done: number;
+  created_at: string;
+  case_number?: string | null;
+  matter_title?: string | null;
+  client_name?: string | null;
+}
+
+export interface MatterDetail {
+  matter: Matter;
+  client: Client | null;
+  hearings: Hearing[];      // newest first
+  docs: Doc[];
+  deadlines: Deadline[];
+  invoices: InvoiceTotals[];
+  activity: AuditRow[];
+}
+
+export interface DiaryData {
+  date: string;
+  hearings: Hearing[];      // the cause list for the day
+  deadlines: Deadline[];    // open deadlines due that day
+  pending: Doc[];           // AI-found dates waiting to be confirmed
+  unrecorded: Hearing[];    // past hearings with no outcome
+  month: { date: string; hearings: number; deadlines: number }[];
+  due_reminders: number;
+}
+
+export interface ConflictHit { kind: string; name: string; detail: string; to: string }
+
 export interface Dashboard {
-  kpi: { documents: number; new_week: number; hearings_14: number; next_hearing: string | null;
-         review: number; outstanding: number; invoices_due: number };
-  hearings: Doc[];
-  recent: DocRow[];
-  chart: { date: string; count: number }[];
+  kpi: { today: number; week: number; overdue: number; due_week: number; unrecorded: number;
+         outstanding: number; invoices_due: number };
+  today: Hearing[];
+  upcoming: Hearing[];      // after today, next 7 days
+  deadlines: Deadline[];    // overdue and due within 7 days
+  load: { date: string; count: number }[]; // hearings per day, next 14 days
   tasks: Task[];
-  health: Status;
+  recent: DocRow[];
   activity: AuditRow[];
 }
 
@@ -164,10 +257,8 @@ export interface ClientRow extends Client { matters: number; docs: number; next_
 export interface ClientDetail {
   client: Client;
   docs: Doc[];
-  matters: { case: string; docs: number; next: string | null }[];
+  matters: MatterRow[];
   invoices: InvoiceTotals[];
   balance: number;
   activity: AuditRow[];
 }
-
-export interface HearingsData { upcoming: Doc[]; pending: Doc[]; past: Doc[]; due: number; all: Doc[] }

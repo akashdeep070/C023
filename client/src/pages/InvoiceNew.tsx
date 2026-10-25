@@ -52,7 +52,7 @@ export function InvoiceNew() {
   return (
     <>
       <Crumbs parent="Billing" to="/billing" current="New invoice" />
-      <PageHead eyebrow="New invoice" title="Fees, expenses" soft="and retainers." />
+      <PageHead title="New invoice" />
 
       <form className="split" onSubmit={submit}>
         <div className="card">

@@ -14,8 +14,7 @@ export function Billing() {
 
   return (
     <>
-      <PageHead eyebrow="Billing" title="Bill by client." soft="Export a clear PDF."
-        lede="Itemized invoices, recorded payments and printable receipts, linked to the right client and case.">
+      <PageHead title="Billing" lede="Invoices, retainers and payments by client and case.">
         <Link className="btn" to="/billing/new"><Icon name="plus" size={16} /> New invoice</Link>
       </PageHead>
 

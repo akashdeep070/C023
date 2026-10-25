@@ -30,8 +30,8 @@ export function Documents() {
 
   return (
     <>
-      <PageHead eyebrow="Documents" title="Find any file" soft="in seconds."
-        lede="Search by case number, party, client, date, or any word inside the document. Try “Sharma”.">
+      <PageHead title="Documents"
+        lede="Search by case number, party, client, date or any word inside a document.">
         <Link className="btn" to="/upload"><Icon name="upload" size={16} /> Upload file</Link>
       </PageHead>
 

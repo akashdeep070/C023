@@ -9,8 +9,10 @@ type NavItem = { to: string; label: string; icon: string; count?: keyof Meta["co
 const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Workspace", items: [
     { to: "/", label: "Overview", icon: "grid" },
+    { to: "/diary", label: "Diary", icon: "calendar", count: "today" },
+    { to: "/matters", label: "Matters", icon: "briefcase", count: "matters" },
+    { to: "/deadlines", label: "Deadlines", icon: "hourglass", count: "overdue", tone: "red" },
     { to: "/documents", label: "Documents", icon: "file", count: "documents" },
-    { to: "/hearings", label: "Hearings", icon: "calendar", count: "to_confirm", tone: "amber" },
     { to: "/clients", label: "Clients", icon: "users", count: "clients" },
   ] },
   { group: "Finance", items: [{ to: "/billing", label: "Billing", icon: "receipt", count: "invoices_due", tone: "amber" }] },
@@ -22,7 +24,8 @@ const NAV: { group: string; items: NavItem[] }[] = [
 
 const CRUMBS: [RegExp, string][] = [
   [/^\/$/, "Overview"], [/^\/upload/, "Upload"], [/^\/documents\/\d+/, "Document"], [/^\/documents/, "Documents"],
-  [/^\/hearings/, "Hearings"], [/^\/clients\/\d+/, "Client"], [/^\/clients/, "Clients"], [/^\/billing\/new/, "New invoice"],
+  [/^\/diary/, "Diary"], [/^\/matters\/\d+/, "Matter"], [/^\/matters/, "Matters"], [/^\/deadlines/, "Deadlines"],
+  [/^\/clients\/\d+/, "Client"], [/^\/clients/, "Clients"], [/^\/billing\/new/, "New invoice"],
   [/^\/billing\/\d+/, "Invoice"], [/^\/billing/, "Billing"], [/^\/activity/, "Audit log"], [/^\/status/, "Status & SLA"],
 ];
 
@@ -86,7 +89,7 @@ export function Layout() {
         <div className="side-top">
           <Link className="brand" to="/">
             <span className="mark"><Icon name="logo" size={18} stroke={1.8} /></span>
-            <span className="brand-text"><b>Lex AI</b><small>Mehta &amp; Rao · Demo</small></span>
+            <span className="brand-text"><b>Lex AI</b><small>Mehta &amp; Rao Associates</small></span>
           </Link>
         </div>
 
@@ -147,8 +150,8 @@ export function Layout() {
           </form>
           <div className="bar-right">
             <Link className="pill" to="/status" title="Instance that served the API"><span className="pulse on" />{instance}</Link>
-            <Link className="icon-btn" to="/hearings" aria-label="Hearing alerts"
-              title={`${counts?.alerts ?? 0} hearing alert${counts?.alerts === 1 ? "" : "s"}`}>
+            <Link className="icon-btn" to="/" aria-label="Things that need attention"
+              title={`${counts?.alerts ?? 0} item${counts?.alerts === 1 ? "" : "s"} need attention`}>
               <Icon name="bell" size={18} />
               {counts?.alerts ? <span className="dot-count">{counts.alerts}</span> : null}
             </Link>
@@ -165,7 +168,7 @@ export function Layout() {
 
         <footer className="foot">
           <div className="wrap">
-            <span className="label">Lex AI · Cloud computing project · Dummy data only</span>
+            <span className="label">Lex AI · Sample data</span>
             <span className="label">Served by {instance}</span>
           </div>
         </footer>

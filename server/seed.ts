@@ -1,6 +1,7 @@
-// Dummy clients, documents and invoices so the demo never starts empty.
-// All names, case numbers and amounts are made up. Dates are relative to
-// today so the hearings and reminders always look current.
+// Sample practice data so the app never starts empty: five clients, six matters
+// with their hearing history, deadlines, documents and invoices.
+// All names, case numbers and amounts are made up. Dates are relative to today,
+// so there is always something listed today and tomorrow.
 
 import { addDays, isoDate, isoDateTime, strftime, today } from "../shared/format.js";
 import type { Analysis } from "./ai.js";
@@ -8,35 +9,116 @@ import { run } from "./db.js";
 import { ingest, log } from "./vault.js";
 
 const d = (days: number) => addDays(today(), days);
-const long = (x: Date) => strftime(x, "%-d %B %Y");
+const iso = (days: number) => isoDate(d(days));
+const long = (days: number) => strftime(d(days), "%-d %B %Y");
 
+/** A timestamp `daysAgo` days back, at a working hour. */
 function ts(daysAgo: number, hour = 10): string {
   const t = d(-daysAgo);
   t.setHours(hour, 12, 0);
   return isoDateTime(t);
 }
 
+/** Write an audit entry, then move it back to when it happened. */
+function logAt(when: string, ...args: Parameters<typeof log>) {
+  run("UPDATE audit SET ts = ? WHERE id = ?", when, log(...args));
+}
+
 const CLIENTS = [
   ["CL-014", "Ananya Sharma", "Property dispute", "ananya.sharma@example.com", "+91 98200 11014", "Adv. R. Mehta"],
-  ["CL-015", "Kapoor Textiles Pvt. Ltd.", "Contract review", "legal@kapoortextiles.example", "+91 22 4000 1015", "Adv. S. Rao"],
-  ["CL-016", "Vikram Sharma", "Bail matter", "vikram.s@example.com", "+91 98330 21016", "Adv. R. Mehta"],
+  ["CL-015", "Kapoor Textiles Pvt. Ltd.", "Commercial", "legal@kapoortextiles.example", "+91 22 4000 1015", "Adv. S. Rao"],
+  ["CL-016", "Vikram Sharma", "Criminal", "vikram.s@example.com", "+91 98330 21016", "Adv. R. Mehta"],
   ["CL-017", "Meera Iyer", "Recovery suit", "meera.iyer@example.com", "+91 99870 31017", "Adv. S. Rao"],
+  ["CL-018", "Farhan Qureshi", "Consumer complaint", "farhan.q@example.com", "+91 98190 41018", "Adv. S. Rao"],
+];
+
+interface SeedHearing { day: number; purpose: string; outcome?: string }
+interface SeedMatter {
+  key: string; client: string; case: string; title: string; court: string; side: string; stage: string;
+  opposite: string; counsel: string; age: number; hearings: SeedHearing[];
+  deadlines: { title: string; due: number; rule?: string; done?: boolean }[];
+}
+
+const MATTERS: SeedMatter[] = [
+  {
+    key: "A", client: "CL-014", case: "CS 214/2026", title: "Ananya Sharma vs Deepak Sharma",
+    court: "Civil Judge (Senior Division), Pune · Court Room 4", side: "Plaintiff", stage: "Written statement",
+    opposite: "Deepak Sharma", counsel: "Adv. P. Kulkarni", age: 30,
+    hearings: [
+      { day: -23, purpose: "First hearing", outcome: "Suit admitted. Summons issued to the defendant; notice on the injunction application (Exh. 5)." },
+      { day: -9, purpose: "Injunction application (Exh. 5)", outcome: "Temporary injunction granted. Defendant to file written statement within 30 days." },
+    ],
+    deadlines: [{ title: "Send copy of the injunction order to the defendant", due: -8, rule: "CPC Order XXXIX Rule 3", done: true }],
+  },
+  {
+    key: "G", client: "CL-014", case: "Misc. Appl. 77/2026", title: "Ananya Sharma, succession certificate",
+    court: "Civil Judge (Senior Division), Pune · Court Room 2", side: "Applicant", stage: "Publication of notice",
+    opposite: "", counsel: "", age: 40,
+    hearings: [
+      { day: -30, purpose: "Admission", outcome: "Notice to be published in a local newspaper. Objections, if any, within 30 days." },
+      { day: 0, purpose: "Proof of publication" },
+    ],
+    deadlines: [],
+  },
+  {
+    key: "B", client: "CL-016", case: "Bail Appl. 1123/2026", title: "State vs Vikram Sharma",
+    court: "Sessions Court, Mumbai · Court Room 12", side: "Applicant", stage: "Bail granted, compliance",
+    opposite: "State of Maharashtra", counsel: "Ld. APP", age: 10,
+    hearings: [
+      { day: -6, purpose: "Bail arguments", outcome: "Bail granted on a personal bond of ₹50,000 with one surety." },
+      { day: 12, purpose: "Compliance and filing of charge sheet" },
+    ],
+    deadlines: [{ title: "Furnish surety and bail bond", due: -4, done: true }],
+  },
+  {
+    key: "C", client: "CL-017", case: "CS (COMM) 88/2026", title: "Meera Iyer vs Northwind Logistics Pvt. Ltd.",
+    court: "Commercial Court, Bengaluru · Court Hall 3", side: "Plaintiff", stage: "Case management",
+    opposite: "Northwind Logistics Pvt. Ltd.", counsel: "Adv. K. Rao", age: 45,
+    hearings: [
+      { day: -20, purpose: "First hearing", outcome: "Defendant appeared. Written statement taken on record." },
+      { day: 1, purpose: "Case management hearing" },
+    ],
+    deadlines: [{ title: "File affidavit of admission and denial of documents", due: 0, rule: "CPC Order XI Rule 4 (commercial suits)" }],
+  },
+  {
+    key: "F", client: "CL-018", case: "CC/412/2025", title: "Farhan Qureshi vs Sunrise Builders Pvt. Ltd.",
+    court: "District Consumer Commission, Mumbai Suburban", side: "Complainant", stage: "Evidence",
+    opposite: "Sunrise Builders Pvt. Ltd.", counsel: "Adv. N. Desai", age: 120,
+    hearings: [
+      { day: -42, purpose: "Reply of opposite party", outcome: "Reply filed. Complainant to file evidence affidavit." },
+      { day: -7, purpose: "Evidence affidavit" }, // the outcome was never written down
+      { day: 0, purpose: "Cross-examination of complainant" },
+    ],
+    deadlines: [],
+  },
+  {
+    key: "D", client: "CL-015", case: "", title: "Kapoor Textiles, supply agreement review",
+    court: "", side: "Advisory", stage: "Advice", opposite: "Northwind Mills LLP", counsel: "", age: 4,
+    hearings: [],
+    deadlines: [{ title: "Send revised liability and termination clauses to the client", due: 3 }],
+  },
+  {
+    key: "E", client: "CL-015", case: "", title: "Kapoor Textiles vs Northwind Mills LLP, cheque dishonour",
+    court: "", side: "Complainant", stage: "Demand notice", opposite: "Northwind Mills LLP", counsel: "", age: 3,
+    hearings: [],
+    deadlines: [{ title: "Send demand notice for the dishonoured cheque", due: 18,
+      rule: "NI Act s.138(b): within 30 days of the bank's return memo" }],
+  },
 ];
 
 interface SeedDoc {
-  client: string; title: string; filename: string; case: string; type: string;
-  status: string; confirmed: boolean; age: number; text: string; analysis: Analysis;
+  matter: string; title: string; filename: string; type: string; status: string;
+  confirmed: boolean; age: number; text: string; analysis: Analysis;
 }
 
 const groq = (a: Omit<Analysis, "source" | "doc_type" | "case_number">): Analysis =>
   ({ ...a, doc_type: "", case_number: "", source: "groq" });
 
 function docs(): SeedDoc[] {
-  const bailNext = d(12), plaintNext = d(19), recoveryNext = d(1), interimPast = d(-9);
   return [
     {
-      client: "CL-016", title: "Bail order, State vs Vikram Sharma", filename: "bail-order-1123-2026.txt",
-      case: "Bail Appl. 1123/2026", type: "Order", status: "Reviewed", confirmed: true, age: 6,
+      matter: "B", title: "Bail order, State vs Vikram Sharma", filename: "bail-order-1123-2026.txt",
+      type: "Order", status: "Reviewed", confirmed: true, age: 6,
       text: `IN THE COURT OF THE SESSIONS JUDGE, MUMBAI
 
 Bail Application No. 1123/2026
@@ -50,23 +132,23 @@ The applicant Vikram Sharma has been in custody since the date of arrest in conn
 Having heard both sides and perused the record, this Court is of the view that further custody is not required. Bail is granted on a personal bond of ₹50,000 with one surety of the like amount.
 \fConditions: the applicant shall not leave the jurisdiction of this Court without permission, shall appear before the Investigating Officer every Monday, and shall not contact any prosecution witness.
 
-The matter is listed for next hearing on ${long(bailNext)} for compliance and filing of the charge sheet.
+The matter is listed for next hearing on ${long(12)} for compliance and filing of the charge sheet.
 
 Sd/- Sessions Judge`,
       analysis: groq({
         summary: "Vikram Sharma was granted bail in Bail Application 1123/2026 after the court found further custody unnecessary. " +
           "Bail is on a personal bond of ₹50,000 with one surety, with conditions on travel, weekly reporting and witness contact. " +
-          `The next hearing is on ${long(bailNext)} for compliance and the charge sheet.`,
+          `The next hearing is on ${long(12)} for compliance and the charge sheet.`,
         key_points: ["Bail granted on a ₹50,000 personal bond with one surety",
           "Must report to the Investigating Officer every Monday",
           "Cannot leave the court's jurisdiction without permission",
           "No contact with prosecution witnesses"],
-        parties: "State vs Vikram Sharma", hearing_date: isoDate(bailNext), hearing_page: 3,
+        parties: "State vs Vikram Sharma", hearing_date: iso(12), hearing_page: 3,
       }),
     },
     {
-      client: "CL-014", title: "Plaint, Ananya Sharma vs Deepak Sharma", filename: "plaint-cs-214-2026.txt",
-      case: "CS 214/2026", type: "Petition", status: "Awaiting review", confirmed: false, age: 3,
+      matter: "A", title: "Plaint, Ananya Sharma vs Deepak Sharma", filename: "plaint-cs-214-2026.txt",
+      type: "Petition", status: "Reviewed", confirmed: true, age: 25,
       text: `IN THE COURT OF THE CIVIL JUDGE (SENIOR DIVISION), PUNE
 
 Civil Suit No. CS 214/2026
@@ -83,59 +165,63 @@ PLAINT UNDER ORDER VII RULE 1 OF THE CODE OF CIVIL PROCEDURE
 
 Valuation and court fee have been paid as per the schedule annexed.
 
-The suit is listed for first hearing on ${long(plaintNext)} before the Civil Judge, Court Room 4.
+The suit is listed for first hearing on ${long(-23)} before the Civil Judge, Court Room 4.
 
 Advocate for the Plaintiff`,
       analysis: groq({
         summary: "Ananya Sharma has sued her cousin Deepak Sharma for possession of her late father's flat in Kothrud, Pune. " +
           "She relies on a registered will and mutation entry, and asks for possession, ₹25,000 a month in mesne profits and an injunction. " +
-          `The first hearing is on ${long(plaintNext)} in Court Room 4.`,
-        key_points: ["Possession of flat at Kothrud, Survey No. 88/2", "Defendant in occupation since March 2025",
-          "Mesne profits claimed at ₹25,000 per month", "Relies on registered will and mutation entry"],
-        parties: "Ananya Sharma vs Deepak Sharma", hearing_date: isoDate(plaintNext), hearing_page: 2,
+          `The first hearing was listed for ${long(-23)} in Court Room 4.`,
+        key_points: ["Possession of flat at Kothrud, Survey No. 88/2",
+          "Defendant in occupation since March 2025",
+          "Mesne profits claimed at ₹25,000 per month",
+          "Relies on registered will and mutation entry"],
+        parties: "Ananya Sharma vs Deepak Sharma", hearing_date: iso(-23), hearing_page: 2,
       }),
     },
     {
-      client: "CL-014", title: "Interim order on injunction", filename: "interim-order-cs-214.txt",
-      case: "CS 214/2026", type: "Order", status: "Reviewed", confirmed: true, age: 14,
+      matter: "A", title: "Order on injunction application (Exh. 5)", filename: "interim-order-cs-214.txt",
+      type: "Order", status: "Awaiting review", confirmed: false, age: 8,
       text: `CIVIL JUDGE (SENIOR DIVISION), PUNE
 CS 214/2026, Ananya Sharma vs Deepak Sharma
 
 ORDER BELOW EXHIBIT 5
 
-Heard counsel for the plaintiff on the application for temporary injunction. Notice was served on the defendant, who remained absent.
+Heard counsel for the plaintiff on the application for temporary injunction on ${long(-9)}. Notice was served on the defendant, who remained absent.
 
 Prima facie, the plaintiff has shown title through the registered will. The balance of convenience lies in her favour. The defendant is restrained from selling, leasing or creating any third-party rights in the suit flat until further orders.
 
-Hearing held on ${long(interimPast)}. Written statement to be filed within 30 days.`,
+The defendant shall file his written statement within 30 days. List on ${long(19)} for written statement.`,
       analysis: groq({
         summary: "The court granted Ananya Sharma a temporary injunction in CS 214/2026. " +
           "Deepak Sharma cannot sell, lease or create third-party rights in the flat until further orders. " +
-          "He must file his written statement within 30 days.",
-        key_points: ["Temporary injunction granted ex parte", "Title shown prima facie through the registered will",
-          "Written statement due within 30 days"],
-        parties: "Ananya Sharma vs Deepak Sharma", hearing_date: isoDate(interimPast), hearing_page: 1,
+          `He must file his written statement within 30 days; the matter is next listed on ${long(19)}.`,
+        key_points: ["Temporary injunction granted; defendant was absent",
+          "Title shown prima facie through the registered will",
+          "Written statement due within 30 days",
+          `Next date ${long(19)} for written statement`],
+        parties: "Ananya Sharma vs Deepak Sharma", hearing_date: iso(19), hearing_page: 1,
       }),
     },
     {
-      client: "CL-014", title: "Identity proof, Ananya Sharma", filename: "identity-proof.txt",
-      case: "CS 214/2026", type: "Identity", status: "Reviewed", confirmed: false, age: 15,
-      text: `IDENTITY DECLARATION (DUMMY DOCUMENT)
+      matter: "A", title: "Identity proof, Ananya Sharma", filename: "identity-proof.txt",
+      type: "Identity", status: "Reviewed", confirmed: false, age: 26,
+      text: `IDENTITY DECLARATION (SAMPLE DOCUMENT)
 
 Name: Ananya Sharma
 Address: Flat 12, Kothrud, Pune 411038
 ID type: Aadhaar (masked) XXXX XXXX 4821
 
-This dummy document is used only to demonstrate Lex AI.`,
+This sample document is used only to demonstrate Lex AI.`,
       analysis: groq({
         summary: "A masked identity declaration for Ananya Sharma with her Pune address. " +
-          "It supports her standing as plaintiff in CS 214/2026. Dummy document for the demo.",
+          "It supports her standing as plaintiff in CS 214/2026.",
         key_points: [], parties: "Ananya Sharma", hearing_date: "", hearing_page: null,
       }),
     },
     {
-      client: "CL-015", title: "Supply agreement review memo", filename: "supply-agreement-memo.txt",
-      case: "", type: "Contract", status: "Awaiting review", confirmed: false, age: 2,
+      matter: "D", title: "Supply agreement review memo", filename: "supply-agreement-memo.txt",
+      type: "Contract", status: "Awaiting review", confirmed: false, age: 2,
       text: `MEMO: REVIEW OF FABRIC SUPPLY AGREEMENT
 Client: Kapoor Textiles Pvt. Ltd.
 Counterparty: Northwind Mills LLP
@@ -151,30 +237,33 @@ Recommendation: sign after the liability cap and termination clauses are revised
         summary: "A review of Kapoor Textiles' three-year fabric supply agreement with Northwind Mills. " +
           "The liability cap of one month's fees is too low and there is no right to terminate for repeated late delivery. " +
           "Recommendation: sign once both clauses are revised.",
-        key_points: ["Auto-renews unless 90 days' notice is given", "Price linked to cotton index, capped at 7%",
-          "Raise liability cap from one to twelve months", "Add termination after three late deliveries a quarter"],
+        key_points: ["Auto-renews unless 90 days' notice is given",
+          "Price linked to cotton index, capped at 7%",
+          "Raise liability cap from one to twelve months",
+          "Add termination after three late deliveries a quarter"],
         parties: "Kapoor Textiles vs Northwind Mills", hearing_date: "", hearing_page: null,
       }),
     },
     {
-      client: "CL-017", title: "Hearing notice, Meera Iyer vs Northwind Logistics", filename: "hearing-notice-88-2026.txt",
-      case: "CS (COMM) 88/2026", type: "Notice", status: "Reviewed", confirmed: true, age: 5,
+      matter: "C", title: "Hearing notice, Meera Iyer vs Northwind Logistics", filename: "hearing-notice-88-2026.txt",
+      type: "Notice", status: "Reviewed", confirmed: true, age: 5,
       text: `COMMERCIAL COURT, BENGALURU
 CS (COMM) 88/2026
 Meera Iyer vs Northwind Logistics Pvt. Ltd.
 
 NOTICE OF HEARING
 
-Take notice that the above suit for recovery of ₹3,40,000 with interest at 12% per annum, being unpaid freight charges, is listed for case management hearing on ${long(recoveryNext)} at 11:00 AM.
+Take notice that the above suit for recovery of ₹3,40,000 with interest at 12% per annum, being unpaid freight charges, is listed for case management hearing on ${long(1)} at 11:00 AM.
 
 Parties shall file their affidavits of admission and denial of documents before the hearing.`,
       analysis: groq({
         summary: "Meera Iyer's commercial suit against Northwind Logistics seeks ₹3,40,000 in unpaid freight with 12% interest. " +
-          `A case management hearing is listed on ${long(recoveryNext)} at 11:00 AM. ` +
+          `A case management hearing is listed on ${long(1)} at 11:00 AM. ` +
           "Both sides must file affidavits of admission and denial before then.",
-        key_points: ["Recovery of ₹3,40,000 with 12% interest", "Case management hearing at 11:00 AM",
+        key_points: ["Recovery of ₹3,40,000 with 12% interest",
+          "Case management hearing at 11:00 AM",
           "File affidavit of admission/denial beforehand"],
-        parties: "Meera Iyer vs Northwind Logistics", hearing_date: isoDate(recoveryNext), hearing_page: 1,
+        parties: "Meera Iyer vs Northwind Logistics", hearing_date: iso(1), hearing_page: 1,
       }),
     },
   ];
@@ -190,38 +279,55 @@ const INVOICES: [string, string, string, number, number, number, [string, number
 ];
 
 export async function seed() {
-  const ids: Record<string, number> = {};
+  const clients: Record<string, number> = {};
   for (const [code, name, matter, email, phone, lawyer] of CLIENTS) {
-    ids[code] = run("INSERT INTO clients (code, name, matter, email, phone, lawyer, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      code, name, matter, email, phone, lawyer, ts(30));
-    const auditId = log("Client added", `${name} · ${code}`, null, ids[code]);
-    run("UPDATE audit SET ts = ? WHERE id = ?", ts(30, 9), auditId);
+    clients[code] = run("INSERT INTO clients (code, name, matter, email, phone, lawyer, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      code, name, matter, email, phone, lawyer, ts(130));
+    logAt(ts(130, 9), "Client added", `${name} · ${code}`, null, clients[code]);
+  }
+
+  const matters: Record<string, number> = {};
+  for (const m of MATTERS) {
+    const mid = run(`INSERT INTO matters (client_id, case_number, title, court, our_side, stage, opposite_party, opposite_counsel, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      clients[m.client], m.case, m.title, m.court, m.side, m.stage, m.opposite, m.counsel, ts(m.age));
+    matters[m.key] = mid;
+    logAt(ts(m.age, 9), "Matter opened", m.case || m.title, null, null, "Lawyer", mid);
+    for (const h of m.hearings) {
+      run("INSERT INTO hearings (matter_id, date, purpose, outcome, created_at) VALUES (?, ?, ?, ?, ?)",
+        mid, iso(h.day), h.purpose, h.outcome ?? "", ts(Math.max(-h.day, 0) + 1));
+      if (h.outcome) logAt(ts(Math.max(-h.day, 0), 17), "Outcome recorded", `${strftime(d(h.day), "%-d %b %Y")}: ${h.outcome}`, null, null, "Lawyer", mid);
+    }
+    for (const dl of m.deadlines) {
+      run("INSERT INTO deadlines (matter_id, title, due, rule, done, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        mid, dl.title, iso(dl.due), dl.rule ?? "", dl.done ? 1 : 0, ts(m.age));
+    }
   }
 
   for (const doc of docs().sort((a, b) => b.age - a.age)) {
+    const m = MATTERS.find((x) => x.key === doc.matter)!;
     const id = await ingest(Buffer.from(doc.text), doc.filename, {
-      title: doc.title, clientId: ids[doc.client], caseNumber: doc.case, docType: doc.type, analysis: doc.analysis,
+      title: doc.title, clientId: clients[m.client], matterId: matters[doc.matter], caseNumber: m.case,
+      docType: doc.type, analysis: doc.analysis,
     });
     run("UPDATE documents SET status = ?, hearing_confirmed = ?, created_at = ?, updated_at = ? WHERE id = ?",
       doc.status, doc.confirmed ? 1 : 0, ts(doc.age), ts(doc.age), id);
     run("UPDATE versions SET uploaded_at = ? WHERE document_id = ?", ts(doc.age), id);
     run("UPDATE audit SET ts = ? WHERE document_id = ?", ts(doc.age), id);
     if (doc.confirmed) {
-      const auditId = log("Hearing confirmed", doc.analysis.hearing_date, id);
-      run("UPDATE audit SET ts = ? WHERE id = ?", ts(doc.age, 11), auditId);
+      run("UPDATE hearings SET document_id = ? WHERE matter_id = ? AND date = ?", id, matters[doc.matter], doc.analysis.hearing_date);
     }
   }
 
   for (const [number, code, caseNo, issued, due, retainer, lines, payments] of INVOICES) {
     const id = run("INSERT INTO invoices (number, client_id, case_number, issued, due, retainer, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      number, ids[code], caseNo, isoDate(d(issued)), isoDate(d(due)), retainer, ts(Math.max(-issued, 0)));
+      number, clients[code], caseNo, iso(issued), iso(due), retainer, ts(Math.max(-issued, 0)));
     for (const [service, qty, rate] of lines) {
       run("INSERT INTO invoice_items (invoice_id, service, qty, rate) VALUES (?, ?, ?, ?)", id, service, qty, rate);
     }
     for (const [amount, method, day] of payments) {
-      run("INSERT INTO payments (invoice_id, amount, method, paid_on) VALUES (?, ?, ?, ?)", id, amount, method, isoDate(d(day)));
+      run("INSERT INTO payments (invoice_id, amount, method, paid_on) VALUES (?, ?, ?, ?)", id, amount, method, iso(day));
     }
-    const auditId = log("Invoice issued", number, null, ids[code]);
-    run("UPDATE audit SET ts = ? WHERE id = ?", ts(Math.max(-issued, 0), 16), auditId);
+    logAt(ts(Math.max(-issued, 0), 16), "Invoice issued", number, null, clients[code]);
   }
 }

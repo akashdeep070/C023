@@ -85,8 +85,45 @@ CREATE TABLE IF NOT EXISTS payments (
   method TEXT DEFAULT '',
   paid_on TEXT NOT NULL
 );
+-- The case diary: one matter per case, with its dated hearings and deadlines
+CREATE TABLE IF NOT EXISTS matters (
+  id INTEGER PRIMARY KEY,
+  client_id INTEGER REFERENCES clients(id),
+  case_number TEXT DEFAULT '',
+  title TEXT NOT NULL,
+  court TEXT DEFAULT '',
+  our_side TEXT DEFAULT '',
+  stage TEXT DEFAULT '',
+  opposite_party TEXT DEFAULT '',
+  opposite_counsel TEXT DEFAULT '',
+  status TEXT DEFAULT 'Open',
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS hearings (
+  id INTEGER PRIMARY KEY,
+  matter_id INTEGER NOT NULL REFERENCES matters(id),
+  date TEXT NOT NULL,
+  purpose TEXT DEFAULT '',
+  outcome TEXT DEFAULT '',
+  notes TEXT DEFAULT '',
+  document_id INTEGER,
+  reminder_sent INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS deadlines (
+  id INTEGER PRIMARY KEY,
+  matter_id INTEGER REFERENCES matters(id),
+  title TEXT NOT NULL,
+  due TEXT NOT NULL,
+  rule TEXT DEFAULT '',
+  done INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_versions_doc ON versions(document_id);
 CREATE INDEX IF NOT EXISTS idx_audit_doc ON audit(document_id);
+CREATE INDEX IF NOT EXISTS idx_hearings_date ON hearings(date);
+CREATE INDEX IF NOT EXISTS idx_hearings_matter ON hearings(matter_id);
+CREATE INDEX IF NOT EXISTS idx_deadlines_due ON deadlines(due);
 `;
 
 for (const dir of [DATA_DIR, UPLOAD_DIR, VAULT_DIR]) mkdirSync(dir, { recursive: true });
@@ -96,6 +133,14 @@ db.exec("PRAGMA journal_mode = WAL"); // lets app1 and app2 share the file
 db.exec("PRAGMA busy_timeout = 5000");
 db.exec("PRAGMA foreign_keys = ON");
 db.exec(SCHEMA);
+
+// Databases created before the case diary existed get the new link columns
+function addColumn(table: string, column: string, definition: string) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+addColumn("documents", "matter_id", "INTEGER REFERENCES matters(id)");
+addColumn("audit", "matter_id", "INTEGER");
 
 type Params = SQLInputValue[];
 

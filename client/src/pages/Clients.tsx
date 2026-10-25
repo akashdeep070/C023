@@ -33,8 +33,8 @@ export function Clients() {
 
   return (
     <>
-      <PageHead eyebrow="Clients" title="One client. Every case." soft="One workspace."
-        lede="A directory that connects contacts, matters, documents, hearing dates and billing.">
+      <PageHead title="Clients"
+        lede="Contacts, open matters, next dates and fees owed.">
         <button className="btn" onClick={() => setAdding((a) => !a)}><Icon name="plus" size={16} /> Add client</button>
       </PageHead>
 
