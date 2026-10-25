@@ -19,6 +19,7 @@ export function Upload() {
   useTitle("Upload");
   const { data, error } = useApi<{ clients: Client[]; doc_types: string[] }>("/upload-options");
   const meta = useApi<Meta>("/meta").data;
+  const maxMb = meta?.max_upload_mb ?? 20;
   const [params] = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [client, setClient] = useState(params.get("client") ?? "");
@@ -32,7 +33,7 @@ export function Upload() {
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) return flash("Choose a file to upload.", "error");
-    if (file.size > 20 * 1024 * 1024) return flash("Files must be 20 MB or smaller.", "error");
+    if (file.size > maxMb * 1024 * 1024) return flash(`Files must be ${maxMb} MB or smaller.`, "error");
     setBusy(true);
     try {
       const form = new FormData(e.currentTarget);
@@ -60,7 +61,7 @@ export function Upload() {
               onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
             <span className="icon-tile"><Icon name="upload" size={24} /></span>
             <h3>Drop a file here, or click to choose</h3>
-            <p className="muted small" style={{ marginTop: 8 }}>PDF, TXT, PNG, JPG or WEBP · up to 20 MB</p>
+            <p className="muted small" style={{ marginTop: 8 }}>PDF, TXT, PNG, JPG or WEBP · up to {maxMb} MB</p>
             {file && <div className="picked">{file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB</div>}
           </label>
 

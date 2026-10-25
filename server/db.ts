@@ -4,7 +4,8 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 
-export const DATA_DIR = process.env.DATA_DIR || path.resolve("data");
+// Vercel functions can only write to /tmp, so data there lasts only while an instance stays warm
+export const DATA_DIR = process.env.DATA_DIR || (process.env.VERCEL ? "/tmp/lex-data" : path.resolve("data"));
 export const DB_PATH = path.join(DATA_DIR, "lex.db");
 export const UPLOAD_DIR = path.join(DATA_DIR, "uploads"); // the working copy
 export const VAULT_DIR = path.join(DATA_DIR, "vault"); // read-only copy, like S3 Object Lock

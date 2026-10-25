@@ -83,7 +83,7 @@ Most small practices still run on phones, paper and diaries:
 
 ## Quick start
 
-You need **Node.js 22.13 or newer**. A Groq API key is optional: without one, a local reader takes over and the demo still works.
+You need **Node.js 22** (22.13 or newer). A Groq API key is optional: without one, a local reader takes over and the demo still works.
 
 ```bash
 git clone https://github.com/akashdeep070/C023.git lex-ai && cd lex-ai
@@ -111,6 +111,30 @@ docker compose up --build   # http://localhost
 
 This runs **nginx** in front of two identical app containers, **app1** and **app2**, sharing one data volume.
 If one container stops, nginx sends traffic to the other and Docker restarts the stopped one.
+
+### Deploy on Vercel
+
+The repo is ready for Vercel: the React app is served from Vercel's CDN, and the API runs as one serverless function ([`api/index.js`](api/index.js), configured in [`vercel.json`](vercel.json)).
+
+1. Go to [vercel.com/new](https://vercel.com/new) and import the GitHub repo **akashdeep070/C023**.
+2. Set **Project Name** to **`lex-ai-legal-vault`**. The app will live at `https://lex-ai-legal-vault.vercel.app`, if that name is free.
+3. Leave the build settings as they are; `vercel.json` sets them.
+4. Optional: under **Environment Variables**, add `GROQ_API_KEY`.
+5. Click **Deploy**.
+
+If the code is not on the repo's default branch, set **Settings → Git → Production Branch** to the branch that has it, or merge it first.
+
+Or from a terminal: `npx vercel --prod`, and choose `lex-ai-legal-vault` as the project name when asked.
+
+**What changes on Vercel:**
+
+| | Local / Docker | Vercel |
+| --- | --- | --- |
+| Data | Kept in `data/` | Kept in `/tmp` only while the function stays warm. A cold start brings back fresh demo data |
+| Upload size | 20 MB | 4 MB (Vercel caps a function request at 4.5 MB) |
+| "Served by" | `app1` / `app2` | The Vercel region, for example `vercel-bom1` |
+
+That is fine for a class demo. For data that must last, use the Docker setup, as on the architecture slide.
 
 ### Scripts
 
@@ -285,7 +309,8 @@ All endpoints return JSON. Errors come back as `{ "error": "message" }` with a 4
 
 ```
 server/                 Express API (TypeScript)
-  index.ts              App setup and every /api route
+  app.ts                App setup and every /api route
+  index.ts              Serves the app on a port (local and Docker)
   ai.ts                 Groq calls (summary, hearing date, Q&A, image reading) and the local fallback
   extract.ts            Text from PDFs (unpdf), text files and images
   vault.ts              Storage, SHA-256, versions, tamper and restore, audit log
@@ -302,6 +327,8 @@ client/                 React app (TypeScript + Vite)
   src/styles.css        The whole design system in one hand-written file
 samples/                Files to upload during the demo
 docs/screenshots/       Images used in this README
+api/index.js            Vercel serverless entry that runs the same Express app
+vercel.json             Vercel build settings and rewrites
 Dockerfile              Two-stage build, slim Node runtime
 docker-compose.yml      nginx + app1 + app2 on one shared volume
 nginx.conf              Load balancing with failover
@@ -317,6 +344,8 @@ nginx.conf              Load balancing with failover
 | Port 3000 or 5173 is busy | `PORT=3001 npm start`, or stop the other process |
 | Want fresh demo data | Stop the app and delete the `data/` folder |
 | Proxy errors right after `npm run dev` | The API is still seeding demo data. Wait a second and refresh |
+| Uploads vanished on Vercel | Vercel's `/tmp` storage resets when a function cold-starts. Use Docker for data that lasts |
+| "Files must be 4 MB or smaller" on Vercel | Vercel's request size limit. Compress the PDF or run locally or with Docker |
 
 ## Team
 

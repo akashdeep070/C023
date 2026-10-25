@@ -7,7 +7,8 @@ import type { AuditRow, ClientRow, Counts, Invoice, InvoiceLine, InvoiceTotals, 
 import * as ai from "./ai.js";
 import { UPLOAD_DIR, all, get, scalar } from "./db.js";
 
-export const INSTANCE = process.env.INSTANCE_NAME || os.hostname();
+export const INSTANCE = process.env.INSTANCE_NAME
+  || (process.env.VERCEL_REGION ? `vercel-${process.env.VERCEL_REGION}` : os.hostname());
 const STARTED = Date.now();
 export const metrics = { latency: [] as number[], requests: 0, errors: 0 };
 
