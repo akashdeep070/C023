@@ -32,7 +32,7 @@ function chunk(text: string): string[] {
 }
 
 /** Returns the pages plus a note explaining anything the user should know. */
-export async function extractPages(data: Buffer, filename: string): Promise<{ pages: Page[]; note: string }> {
+export async function extractPages(data: Buffer, filename: string, groqKey?: string): Promise<{ pages: Page[]; note: string }> {
   const e = ext(filename);
   if (e === ".pdf") {
     const pdf = await getDocumentProxy(new Uint8Array(data));
@@ -47,6 +47,6 @@ export async function extractPages(data: Buffer, filename: string): Promise<{ pa
     const parts = text.includes("\f") ? text.split("\f") : chunk(text);
     return { pages: parts.map((p, i) => [i + 1, p.trim()]), note: "" };
   }
-  const { text, note } = await readImage(data, ALLOWED[e]);
+  const { text, note } = await readImage(data, ALLOWED[e], groqKey);
   return { pages: [[1, text]], note };
 }

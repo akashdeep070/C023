@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { niceTime } from "../../../shared/format";
 import { TEMPLATES, preview, type DocTemplate } from "../../../shared/templates";
-import type { DraftRow, MatterRow } from "../../../shared/types";
-import { api } from "../api";
+import type { MatterRow } from "../../../shared/types";
 import { Loading, PageHead, blanksBadge } from "../components/common";
 import { useFlash } from "../components/Flash";
 import { Icon } from "../components/Icon";
+import { draftStore, useDrafts, type DraftStore } from "../draftStore";
 import { useApi, useTitle } from "../hooks";
 
 // Built once: the gallery shows each template with its blanks highlighted
@@ -16,7 +16,7 @@ export function Drafts() {
   useTitle("Drafts");
   const [params, setParams] = useSearchParams();
   const matter = params.get("matter") ?? "";
-  const { data: drafts, error, reload } = useApi<DraftRow[]>("/drafts");
+  const { drafts, error, reload, inBrowser } = useDrafts();
   const { data: options } = useApi<{ matters: MatterRow[] }>("/upload-options");
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -26,22 +26,28 @@ export function Drafts() {
   const start = async (t: DocTemplate) => {
     setBusy(t.id);
     try {
-      const r = await api.post<{ id: number }>("/drafts", { template_id: t.id, matter_id: matter || null });
-      navigate(`/drafts/${r.id}`);
+      const id = await (await draftStore()).create(t.id, matter ? Number(matter) : null);
+      navigate(`/drafts/${id}`);
     } catch (err) {
       flash((err as Error).message, "error");
       setBusy(null);
     }
   };
-  const act = async (path: string, then?: (r: { id?: number }) => void) => {
+  const act = async (run: (store: DraftStore) => Promise<unknown>) => {
     try {
-      const r = await api.post<{ id?: number; message?: string }>(path);
-      flash(r.message ?? "Done.");
-      then ? then(r) : reload();
+      await run(await draftStore());
     } catch (err) {
       flash((err as Error).message, "error");
     }
   };
+  const copy = (id: number) => act(async (store) => {
+    navigate(`/drafts/${await store.copy(id)}`);
+    flash("Copy made.");
+  });
+  const remove = (id: number) => act(async (store) => {
+    flash(await store.remove(id));
+    reload();
+  });
 
   const needle = q.trim().toLowerCase();
   const shown = (drafts ?? []).filter((d) =>
@@ -85,7 +91,7 @@ export function Drafts() {
         <div className="card-head" style={{ alignItems: "center" }}>
           <div>
             <h3>Recent documents</h3>
-            <div className="small muted" style={{ marginTop: 4 }}>Saved as you type</div>
+            <div className="small muted" style={{ marginTop: 4 }}>{inBrowser ? "Saved in this browser as you type" : "Saved as you type"}</div>
           </div>
           <div className="search" style={{ maxWidth: 300 }}>
             <Icon name="search" size={16} />
@@ -113,9 +119,9 @@ export function Drafts() {
                     <td className="small muted nowrap">{niceTime(d.updated_at)}</td>
                     <td className="r nowrap" onClick={(e) => e.stopPropagation()}>
                       <button className="btn quiet sm" title="Make a copy" aria-label={`Make a copy of ${d.title}`}
-                        onClick={() => act(`/drafts/${d.id}/copy`, (r) => navigate(`/drafts/${r.id}`))}><Icon name="copy" size={15} /></button>
+                        onClick={() => copy(d.id)}><Icon name="copy" size={15} /></button>
                       <button className="btn quiet sm text-red" title="Delete" aria-label={`Delete ${d.title}`}
-                        onClick={() => window.confirm(`Delete "${d.title}"? This cannot be undone.`) && act(`/drafts/${d.id}/delete`)}>
+                        onClick={() => window.confirm(`Delete "${d.title}"? This cannot be undone.`) && remove(d.id)}>
                         <Icon name="trash" size={15} />
                       </button>
                     </td>

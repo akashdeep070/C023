@@ -53,6 +53,7 @@ interface IngestOptions {
   documentId?: number;
   analysis?: Analysis;
   actor?: string;
+  groqKey?: string;   // a key pasted in the browser, used for this file only
 }
 
 /**
@@ -62,8 +63,8 @@ interface IngestOptions {
 export async function ingest(data: Buffer, filename: string, opts: IngestOptions): Promise<number> {
   // Slow work (reading, AI) happens before any database write
   const { digest, stored } = saveBlob(data, filename);
-  const { pages, note } = await extractPages(data, filename);
-  const analysis = opts.analysis ?? (await analyze(pages));
+  const { pages, note } = await extractPages(data, filename, opts.groqKey);
+  const analysis = opts.analysis ?? (await analyze(pages, opts.groqKey));
   const ts = now();
   const fields = {
     summary: analysis.summary,

@@ -18,10 +18,17 @@ export function PageHead({ eyebrow, title, lede, children }:
   );
 }
 
+const SKELETON = [[38, 72], [90, 64, 82, 48]]; // bar widths in %, one array per plate
+
 export function Loading({ error }: { error?: string | null }) {
+  if (error) return <div className="empty" role="status"><Icon name="alert" size={22} /><p style={{ marginTop: 10 }}>{error}</p></div>;
   return (
-    <div className="empty">
-      {error ? <><Icon name="alert" size={22} /><p style={{ marginTop: 10 }}>{error}</p></> : <span className="spinner" aria-label="Loading" />}
+    <div className="skeleton" role="status" aria-label="Loading">
+      {SKELETON.map((bars, p) => (
+        <div className="sk-plate" key={p} aria-hidden="true">
+          {bars.map((w, i) => <div className="sk-line" key={i}><i style={{ width: `${w}%`, animationDelay: `${-1 - i * 0.3}s` }} /></div>)}
+        </div>
+      ))}
     </div>
   );
 }

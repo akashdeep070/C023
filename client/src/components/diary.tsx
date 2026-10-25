@@ -6,9 +6,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { clientUpdate, whatsappLink, type DraftContext } from "../../../shared/drafts";
 import { addDays, isoDate, niceDate, niceTime, parseDate, strftime } from "../../../shared/format";
 import { templateById } from "../../../shared/templates";
-import type { Client, DraftRow, Hearing, Matter } from "../../../shared/types";
+import type { Client, Hearing, Matter } from "../../../shared/types";
 import { api } from "../api";
-import { useApi } from "../hooks";
+import { draftStore, useDrafts } from "../draftStore";
 import { blanksBadge } from "./common";
 import { useFlash } from "./Flash";
 import { Icon } from "./Icon";
@@ -129,7 +129,7 @@ const QUICK_TEMPLATES = ["adjournment", "s138-notice", "file-note"];
 
 /** A matter's documents in the editor, quick starts from the usual templates, and the client message. */
 export function DraftsPanel({ ctx }: { ctx: DraftContext }) {
-  const { data: drafts } = useApi<DraftRow[]>(`/drafts?matter=${ctx.matter.id}`);
+  const { drafts } = useDrafts(ctx.matter.id);
   const [text, setText] = useState(() => clientUpdate(ctx));
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -138,8 +138,8 @@ export function DraftsPanel({ ctx }: { ctx: DraftContext }) {
   const start = async (templateId: string) => {
     setBusy(true);
     try {
-      const r = await api.post<{ id: number }>("/drafts", { template_id: templateId, matter_id: ctx.matter.id });
-      navigate(`/drafts/${r.id}`);
+      const id = await (await draftStore()).create(templateId, ctx.matter.id);
+      navigate(`/drafts/${id}`);
     } catch (err) {
       flash((err as Error).message, "error");
       setBusy(false);

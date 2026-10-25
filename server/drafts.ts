@@ -2,8 +2,8 @@
 
 import type { Router } from "express";
 import { isoDate } from "../shared/format.js";
-import { render, templateById, type TemplateContext } from "../shared/templates.js";
-import type { Client, Draft, DraftDetail, DraftRow } from "../shared/types.js";
+import { countBlanks, countWords, render, templateById, type TemplateContext } from "../shared/templates.js";
+import type { Client, Draft, DraftDetail, DraftRow, DraftWithMatter } from "../shared/types.js";
 import { all, get, run } from "./db.js";
 import { getMatter, hearings } from "./diary.js";
 import { HttpError, id, str } from "./http.js";
@@ -11,12 +11,8 @@ import * as vault from "./vault.js";
 
 const MAX_HTML = 900_000; // stays under the 1 MB JSON body limit
 
-const countBlanks = (html: string) => html.match(/<mark class="blank"/g)?.length ?? 0;
-const countWords = (html: string) =>
-  html.replace(/<[^>]*>/g, " ").replace(/&[#a-z0-9]+;/gi, " ").split(/\s+/).filter(Boolean).length;
-
-const ROW_SQL = `
-  SELECT d.id, d.title, d.template_id, d.matter_id, d.words, d.blanks, d.created_at, d.updated_at,
+const rowSql = (withHtml = false) => `
+  SELECT d.id, d.title, d.template_id, d.matter_id, d.words, d.blanks, d.created_at, d.updated_at,${withHtml ? " d.html," : ""}
          m.case_number, m.title AS matter_title, c.name AS client_name
   FROM drafts d LEFT JOIN matters m ON m.id = d.matter_id LEFT JOIN clients c ON c.id = m.client_id`;
 
@@ -72,13 +68,15 @@ export function registerDrafts(api: Router) {
       where.push("(d.title LIKE ? OR m.case_number LIKE ? OR m.title LIKE ? OR c.name LIKE ?)");
       args.push(...Array(4).fill(`%${q}%`));
     }
-    const rows = all<DraftRow>(`${ROW_SQL} ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY d.updated_at DESC`, ...args);
+    const rows = all<DraftRow>(`${rowSql()} ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY d.updated_at DESC`, ...args);
     res.json(rows);
   });
 
+  // Returns the filled-in draft too, so a browser that keeps its own drafts (on Vercel) can store it
   api.post("/drafts", (req, res) => {
     const draftId = createDraft(str(req.body?.template_id) || "blank", matterId(req.body?.matter_id));
-    res.json({ id: draftId });
+    const draft = get<DraftWithMatter>(`${rowSql(true)} WHERE d.id = ?`, draftId)!;
+    res.json({ id: draftId, draft });
   });
 
   api.get("/drafts/:id", (req, res) => {

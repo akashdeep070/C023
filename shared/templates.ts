@@ -467,3 +467,9 @@ export const TEMPLATES: DocTemplate[] = [
 ];
 
 export const templateById = (id: string) => TEMPLATES.find((t) => t.id === id);
+
+/** Blanks still left in a draft's HTML. */
+export const countBlanks = (html: string) => html.match(/<mark class="blank"/g)?.length ?? 0;
+
+export const countWords = (html: string) =>
+  html.replace(/<[^>]*>/g, " ").replace(/&[#a-z0-9]+;/gi, " ").split(/\s+/).filter(Boolean).length;

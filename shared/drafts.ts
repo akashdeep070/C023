@@ -4,8 +4,6 @@
 import { niceDate } from "./format.js";
 import type { Client, Hearing, Matter } from "./types.js";
 
-export const FIRM = "Mehta & Rao Associates";
-
 export interface DraftContext {
   matter: Matter;
   client: Client | null;
@@ -33,7 +31,7 @@ export function clientUpdate(c: DraftContext): string {
     c.next ? "You do not need to attend unless we tell you." : "",
     "",
     `Please call us if you have any questions.`,
-    `${lawyer(c)}, ${FIRM}`,
+    lawyer(c),
   ].filter((line, i, all) => line !== "" || all[i - 1] !== "").join("\n");
 }
 

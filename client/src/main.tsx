@@ -22,6 +22,10 @@ import { MatterPage } from "./pages/MatterPage";
 import { Matters } from "./pages/Matters";
 import { StatusPage } from "./pages/StatusPage";
 import { Upload } from "./pages/Upload";
+// Self-hosted fonts: Inter Tight for everything, Geist Mono for case numbers, hashes and keys
+import "@fontsource-variable/inter-tight";
+import "@fontsource/geist-mono/400.css";
+import "@fontsource/geist-mono/500.css";
 import "./styles.css";
 
 function NotFound() {
