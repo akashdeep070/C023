@@ -5,7 +5,6 @@ import { api } from "../api";
 import { ActivityChart } from "../components/ActivityChart";
 import { DateBox, Loading, PageHead, Timeline, docBadge, hearingTone } from "../components/common";
 import { useFlash } from "../components/Flash";
-import { HeroBanner } from "../components/Illustration";
 import { Icon } from "../components/Icon";
 import { useApi, useTitle } from "../hooks";
 
@@ -52,8 +51,6 @@ export function Dashboard() {
         <Link className="btn ghost" to="/billing/new"><Icon name="receipt" size={16} /> New invoice</Link>
         <Link className="btn" to="/upload"><Icon name="upload" size={16} /> Upload file</Link>
       </PageHead>
-
-      <HeroBanner />
 
       <div className="grid g4 kpis">
         <Link className="card kpi" to="/documents">

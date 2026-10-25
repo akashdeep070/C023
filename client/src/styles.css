@@ -468,31 +468,6 @@ details.page-text pre { margin: 0; padding: 0 18px 18px; white-space: pre-wrap; 
 a.link { color: var(--blue-700); }
 a.link:hover { text-decoration: underline; }
 
-/* ------------------------------------------------------------ illustrations */
-
-.illustration { position: relative; margin: 0; overflow: hidden; border-radius: var(--radius); background: var(--surface-2); }
-.illustration img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.illustration figcaption { position: absolute; right: 10px; bottom: 10px; padding: 4px 8px; border-radius: 6px;
-                           background: rgba(255, 255, 255, .88); border: 1px solid var(--line); font: 400 10.5px/1.2 var(--mono); color: var(--ink-2); }
-
-.hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 0; padding: 0; overflow: hidden; margin-bottom: 20px; }
-.hero-text { padding: 32px; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
-.hero-text h2 { font-size: 28px; letter-spacing: -.035em; line-height: 1.15; }
-.hero-art { border-radius: 0; min-height: 260px; }
-.hero-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; }
-.hero-step { display: flex; gap: 10px; align-items: flex-start; color: var(--blue-700); }
-.hero-step svg { margin-top: 2px; flex-shrink: 0; }
-.hero-step b { display: block; font: 500 10.5px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); }
-.hero-step span { font-size: 12.5px; color: var(--muted); }
-.hero-x { position: absolute; top: 12px; right: 12px; background: rgba(255, 255, 255, .85); border-color: var(--line); }
-
-.about-banner { aspect-ratio: 21 / 9; margin-bottom: 8px; }
-.about-grid { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.6fr); gap: 20px; align-items: stretch; }
-.about-side { min-height: 100%; }
-.about-point { display: grid; gap: 10px; padding: 22px; }
-.about-end { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; }
-.about-end .illustration { aspect-ratio: 16 / 10; }
-
 /* ------------------------------------------------------------ footer */
 
 .foot { border-top: 1px solid var(--line); }
@@ -505,9 +480,6 @@ a.link:hover { text-decoration: underline; }
   .panel-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 1080px) {
-  .hero, .about-grid, .about-end { grid-template-columns: 1fr; }
-  .hero-art { min-height: 220px; max-height: 300px; }
-  .about-side { max-height: 420px; }
   .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pipe { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .split { grid-template-columns: 1fr; }
