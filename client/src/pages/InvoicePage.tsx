@@ -74,7 +74,7 @@ export function InvoicePage() {
                 <span className="muted">Paid {niceDate(p.paid_on)}{p.method && ` · ${p.method}`}</span><span>– {inr(p.amount)}</span>
               </div>
             ))}
-            <div className="row due"><span>Balance due</span><span>{inr(t.balance)}</span></div>
+            <div className="row due"><span>Balance due</span><span className={t.status === "Overdue" ? "text-red" : t.balance ? "text-amber" : "text-green"}>{inr(t.balance)}</span></div>
           </div>
 
           <p className="small faint" style={{ marginTop: 40 }}>Illustrative amounts. Tax treatment is configured separately.</p>

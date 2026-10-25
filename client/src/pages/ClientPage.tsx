@@ -24,7 +24,7 @@ export function ClientPage() {
         <div className="card kpi"><div className="label">Matters</div><div className="num">{matters.length}</div></div>
         <div className="card kpi"><div className="label">Documents</div><div className="num">{docs.length}</div></div>
         <div className="card kpi"><div className="label">Invoices</div><div className="num">{invoices.length}</div></div>
-        <div className={`card kpi${balance ? " ink" : ""}`}><div className="label">Balance due</div><div className="num">{inr(balance)}</div></div>
+        <div className="card kpi"><div className="label">Balance due</div><div className={`num ${balance ? "amber" : "green"}`}>{inr(balance)}</div></div>
       </div>
 
       <div className="split">
@@ -70,7 +70,7 @@ export function ClientPage() {
               <div className="list">
                 {invoices.map((t) => (
                   <Link className="row" to={`/billing/${t.inv.id}`} style={{ gap: 14 }} key={t.inv.id}>
-                    <span className="icon-tile"><Icon name="receipt" size={17} /></span>
+                    <span className={`icon-tile ${t.status === "Overdue" ? "red" : t.balance ? "amber" : "green"}`}><Icon name="receipt" size={17} /></span>
                     <div className="grow">
                       <div className="mono" style={{ fontWeight: 500 }}>{t.inv.number}</div>
                       <div className="small muted">Issued {niceDate(t.inv.issued)} · due {niceDate(t.inv.due)}</div>

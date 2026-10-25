@@ -43,8 +43,8 @@ export function Clients() {
           <div className="grid g4 kpis">
             <div className="card kpi"><div className="label">Active clients</div><div className="num">{data.stats.clients}</div></div>
             <div className="card kpi"><div className="label">Open matters</div><div className="num">{data.stats.matters}</div></div>
-            <div className="card kpi"><div className="label">Invoices due</div><div className="num">{data.stats.invoices_due}</div></div>
-            <div className="card kpi ink"><div className="label">Outstanding</div><div className="num">{inr(data.stats.outstanding)}</div></div>
+            <div className="card kpi"><div className="label">Invoices due</div><div className={`num${data.stats.invoices_due ? " amber" : ""}`}>{data.stats.invoices_due}</div></div>
+            <div className="card kpi"><div className="label">Outstanding</div><div className={`num ${data.stats.outstanding ? "amber" : "green"}`}>{inr(data.stats.outstanding)}</div></div>
           </div>
 
           <div className="card section">
@@ -85,7 +85,7 @@ export function Clients() {
                         <td>{c.docs}</td>
                         <td>{c.next_hearing ? niceDate(c.next_hearing) : "Not scheduled"}</td>
                         <td className="muted">{c.lawyer || "—"}</td>
-                        <td className="r" style={{ fontWeight: 500 }}>{inr(c.balance)}</td>
+                        <td className={`r${c.balance ? " text-amber" : ""}`} style={{ fontWeight: 500 }}>{inr(c.balance)}</td>
                       </tr>
                     ))}
                   </tbody>
