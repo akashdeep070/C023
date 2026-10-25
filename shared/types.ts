@@ -112,6 +112,7 @@ export interface Meta {
   instance: string;
   ai: { enabled: boolean; model: string; vision_model: string };
   counts: Counts;
+  max_upload_mb: number;
 }
 
 export interface Status {
