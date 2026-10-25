@@ -43,7 +43,7 @@ summarized and searchable.
 
 LEX AI is our five-person project for the 2026 Cloud Computing course. It shows how a small law practice can move client files off paper and into the cloud: AI reads each file, and a lawyer always makes the final call. It is an MVP built for the class presentation: every feature works end to end on made-up data, and it runs cheaply on one small server.
 
-📽️ **Pitch deck:** [`docs/pitch-deck.pdf`](docs/pitch-deck.pdf), 10 slides built around real screenshots: the team, the diary, matters, documents and AI, proof and cloud, drafting, deadlines and billing, what makes LEX AI different, and present and future work. [`docs/pitch-deck.html`](docs/pitch-deck.html) is the same deck as one file you can open in a browser (arrow keys move between slides). To change it, edit [`docs/deck/index.html`](docs/deck/index.html) and run `npm run deck`; team names are on slide 2.
+📽️ **Pitch deck:** [`docs/pitch-deck.pdf`](docs/pitch-deck.pdf), 10 slides built around real screenshots: the team, the diary, matters, documents and AI, proof and cloud, drafting, deadlines and billing, what makes LEX AI different, and present and future work. [`docs/pitch-deck.html`](docs/pitch-deck.html) is the same deck as one file you can open in a browser (arrow keys move between slides). To change it, edit [`docs/deck/index.html`](docs/deck/index.html) and run `npm run deck`; team names and IDs are on slide 2.
 
 ## The problem
 
@@ -445,9 +445,9 @@ nginx.conf              Load balancing with failover
 | --- | --- | --- |
 | Team member | Akash Deep | 24a12res59 |
 | Team member | Deepa Sharma | 24a12res218 |
-| Team member | *Member name* | |
-| Team member | *Member name* | |
-| Team member | *Member name* | |
+| Team member | | |
+| Team member | | |
+| Team member | | |
 
 ---
 

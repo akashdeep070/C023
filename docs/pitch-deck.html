@@ -3,7 +3,7 @@
   LEX AI pitch deck, 10 slides at 1280 × 720.
   Edit this file, then run `npm run deck` to build docs/pitch-deck.html (one self-contained file)
   and docs/pitch-deck.pdf. Screenshots live in docs/deck/shots.
-  Team names: search for "Member name" (slide 2).
+  Team: slide 2. Empty slots have a blank <span class="name"> and <span class="id"> to fill in.
 -->
 <html lang="en">
 <head>
@@ -164,7 +164,7 @@ p { margin: 0; }
 </section>
 
 <!-- ============================================================ 2 team -->
-<!-- Replace each "Member name" with a real name, and add <span class="id">…</span> for the ID -->
+<!-- Empty slots: put the name in <span class="name"> and the ID in <span class="id"> -->
 <section class="slide" aria-label="Slide 2 of 10">
   <header class="top"><span class="brand">LEX AI</span><span class="eyebrow">Team</span><span class="num">02 / 10</span></header>
   <div class="copy" style="gap: 10px">
@@ -174,9 +174,9 @@ p { margin: 0; }
   <div class="team">
     <div class="person"><span class="n">01</span><span class="name">Akash Deep</span><span class="id">24a12res59</span></div>
     <div class="person"><span class="n">02</span><span class="name">Deepa Sharma</span><span class="id">24a12res218</span></div>
-    <div class="person"><span class="n">03</span><span class="name">Member name</span></div>
-    <div class="person"><span class="n">04</span><span class="name">Member name</span></div>
-    <div class="person"><span class="n">05</span><span class="name">Member name</span></div>
+    <div class="person"><span class="n">03</span><span class="name">&nbsp;</span><span class="id">&nbsp;</span></div>
+    <div class="person"><span class="n">04</span><span class="name">&nbsp;</span><span class="id">&nbsp;</span></div>
+    <div class="person"><span class="n">05</span><span class="name">&nbsp;</span><span class="id">&nbsp;</span></div>
   </div>
   <div class="stack"><span class="k">Built with</span> React 19 · TypeScript · Node 22 · Express · SQLite · Docker · nginx · Vercel · Groq (Llama 3.1)</div>
 </section>
