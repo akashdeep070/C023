@@ -441,13 +441,13 @@ nginx.conf              Load balancing with failover
 
 ## Team
 
-| Role | Name |
-| --- | --- |
-| Team member | *Member name* |
-| Team member | *Member name* |
-| Team member | *Member name* |
-| Team member | *Member name* |
-| Team member | *Member name* |
+| Role | Name | ID |
+| --- | --- | --- |
+| Team member | Akash Deep | 24a12res59 |
+| Team member | Deepa Sharma | 24a12res218 |
+| Team member | *Member name* | |
+| Team member | *Member name* | |
+| Team member | *Member name* | |
 
 ---
 
