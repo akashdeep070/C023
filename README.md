@@ -24,6 +24,7 @@ keeps a locked copy, writes a short AI summary, finds the next hearing date and 
 
 ## Contents
 
+- [About](#about)
 - [The problem](#the-problem)
 - [What Lex AI does](#what-lex-ai-does)
 - [Quick start](#quick-start)
@@ -36,6 +37,12 @@ keeps a locked copy, writes a short AI summary, finds the next hearing date and 
 - [Project structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
 - [Team](#team)
+
+## About
+
+Lex AI is our five-person project for the 2026 Cloud Computing course. It shows how a small law practice can move client files off paper and into the cloud: AI reads each file, and a lawyer always makes the final call. It is a working demo with made-up data, built to run cheaply on one small server.
+
+📽️ **Pitch deck:** [`docs/pitch-deck.html`](docs/pitch-deck.html), our 14-slide presentation. Download it and open it in a browser; use the arrow keys to move between slides.
 
 ## The problem
 
