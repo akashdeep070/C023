@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="client/public/images/hero-vault.jpg" alt="Legal files moving from paper into a secure glass cloud vault (AI-generated illustration)" width="100%">
+
 # Lex AI
 
 **Legal files, off paper and into the cloud.**
@@ -16,7 +18,7 @@ keeps a locked copy, writes a short AI summary, finds the next hearing date and 
 
 *Cloud Computing course project · 2026 · all data in the app is dummy data*
 
-<img src="docs/screenshots/dashboard.png" alt="Lex AI control panel: KPI tiles, activity chart, system health, tasks and upcoming hearings" width="100%">
+<img src="docs/screenshots/dashboard.jpg" alt="Lex AI control panel: welcome banner, KPI tiles, activity chart, system health" width="100%">
 
 </div>
 
@@ -24,6 +26,7 @@ keeps a locked copy, writes a short AI summary, finds the next hearing date and 
 
 ## Contents
 
+- [About](#about)
 - [The problem](#the-problem)
 - [What Lex AI does](#what-lex-ai-does)
 - [Quick start](#quick-start)
@@ -37,7 +40,15 @@ keeps a locked copy, writes a short AI summary, finds the next hearing date and 
 - [Troubleshooting](#troubleshooting)
 - [Team](#team)
 
+## About
+
+Lex AI is a five-person project for our 2026 Cloud Computing course. It shows how a small law practice could move client files off paper and into the cloud, with AI doing the reading and a person always making the final call.
+
+It is a working demo, not a product: one Node.js app (Express API + React UI) that runs on a laptop or as Docker containers behind nginx, the way it would on a single AWS EC2 instance. Groq's small, fast models do the AI work, so it stays cheap to run. Every client, case and amount in it is made up.
+
 ## The problem
+
+<img src="client/public/images/problem-paperwork.jpg" alt="Scattered legal papers, case folders, a phone and a hearing diary (AI-generated illustration)" width="300" align="right">
 
 Most small practices still run on phones, paper and diaries:
 
@@ -48,7 +59,15 @@ Most small practices still run on phones, paper and diaries:
 
 **The gap:** client files have no single safe home, and nothing reminds anyone of a hearing.
 
+<br clear="right">
+
 ## What Lex AI does
+
+<img src="client/public/images/solution-workspace.jpg" alt="Digital legal workspace with laptop, secure cloud and confirmed hearing reminder (AI-generated illustration)" width="300" align="right">
+
+Lex AI gives every client file **one safe home**: files are safe, searchable and summarized, and every hearing gets a reminder.
+
+<br clear="right">
 
 | | Feature | How |
 | --- | --- | --- |
@@ -62,6 +81,7 @@ Most small practices still run on phones, paper and diaries:
 | 🧾 | **Billing** | Itemized invoices, retainers, payments, balances and a printable PDF invoice |
 | 🧭 | **Audit log** | Every upload, view, AI run, confirmation, reminder and integrity check, with who did it |
 | 📈 | **Status & SLA** | Live P95/P99 latency, error rate, health checks, and which container answered |
+| ℹ️ | **About project** | The slide story in the app: problem, solution, how it is built, with the presentation illustrations |
 
 <table>
 <tr>
@@ -72,7 +92,12 @@ Most small practices still run on phones, paper and diaries:
 <td width="50%"><img src="docs/screenshots/billing.png" alt="Invoice INV-2026-014 with line items, retainer and balance due"><br><sub><b>Billing.</b> Itemized invoice with retainer, payments and a print-to-PDF button.</sub></td>
 <td width="50%"><img src="docs/screenshots/status.png" alt="Status page with live SLA targets, health and incident severity"><br><sub><b>Status & SLA.</b> Live numbers from the instance that answered, refreshed every 5 seconds.</sub></td>
 </tr>
+<tr>
+<td colspan="2"><img src="docs/screenshots/about.jpg" alt="About the project page with the presentation illustrations"><br><sub><b>About the project.</b> The story from the slides inside the app: the problem, the solution and how it is built.</sub></td>
+</tr>
 </table>
+
+The illustrations come from our presentation and are AI-generated. They live in [`client/public/images/`](client/public/images) and appear in the app on the overview banner and the *About project* page.
 
 ## Quick start
 
@@ -293,6 +318,7 @@ client/                 React app (TypeScript + Vite)
   src/pages/            One component per page
   src/components/       Sidebar layout, activity chart, flash messages, icons
   src/styles.css        The whole design system in one hand-written file
+  public/images/        Illustrations from the presentation (AI-generated)
 samples/                Files to upload during the demo
 docs/screenshots/       Images used in this README
 Dockerfile              Two-stage build, slim Node runtime
@@ -312,6 +338,8 @@ nginx.conf              Load balancing with failover
 | Proxy errors right after `npm run dev` | The API is still seeding demo data. Wait a second and refresh |
 
 ## Team
+
+<img src="client/public/images/vault-verified.jpg" alt="Legal files protected inside a cloud vault with a lock and verification check (AI-generated illustration)" width="100%">
 
 | Role | Name |
 | --- | --- |
