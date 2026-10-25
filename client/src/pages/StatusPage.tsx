@@ -34,7 +34,7 @@ export function StatusPage() {
 
   return (
     <>
-      <PageHead eyebrow="SLA & health" title="Promises we" soft="can measure."
+      <PageHead eyebrow="System" title="Status & SLA"
         lede="Live numbers from the instance that answered. Behind nginx, refresh and watch it switch between app1 and app2." />
 
       <div className="grid g4 kpis">

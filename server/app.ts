@@ -6,20 +6,18 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import express, { type NextFunction, type Request, type Response } from "express";
 import multer from "multer";
-import { addDays, inr, isValidIsoDate, isoDate, niceDate, parseDate, today } from "../shared/format.js";
-import type { Client, Dashboard, Doc, DocRow, Task, Version } from "../shared/types.js";
+import { addDays, inr, isValidIsoDate, isoDate, niceDate, today } from "../shared/format.js";
+import type { Client, Dashboard, Deadline, Doc, DocRow, Task, Version } from "../shared/types.js";
 import * as ai from "./ai.js";
 import { UPLOAD_DIR, all, get, run, scalar, transaction } from "./db.js";
+import { DEADLINE_SQL, addHearing, createClient, hearings, linkDocument, matterRows, registerDiary } from "./diary.js";
 import { allowed } from "./extract.js";
+import { HttpError, id, str } from "./http.js";
 import {
   INSTANCE, allInvoices, clientRows, counts, invoiceTotals, recentActivity, record, remindersDue, status,
 } from "./queries.js";
 import { seed } from "./seed.js";
 import * as vault from "./vault.js";
-
-class HttpError extends Error {
-  constructor(public status: number, message: string) { super(message); }
-}
 
 // Vercel caps a function's request body at 4.5 MB, so uploads are smaller there
 export const MAX_UPLOAD_MB = process.env.VERCEL ? 4 : 20;
@@ -39,27 +37,13 @@ app.use((req, res, next) => {
 });
 
 const api = express.Router();
-const id = (req: Request, key = "id") => {
-  const n = Number(req.params[key]);
-  if (!Number.isInteger(n)) throw new HttpError(404, "Not found");
-  return n;
-};
-const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
 function getDoc(docId: number): Doc {
-  const doc = get<Doc>(`SELECT d.*, c.name AS client_name, c.code AS client_code
-                        FROM documents d LEFT JOIN clients c ON c.id = d.client_id WHERE d.id = ?`, docId);
+  const doc = get<Doc>(`SELECT d.*, c.name AS client_name, c.code AS client_code, m.title AS matter_title
+                        FROM documents d LEFT JOIN clients c ON c.id = d.client_id
+                        LEFT JOIN matters m ON m.id = d.matter_id WHERE d.id = ?`, docId);
   if (!doc) throw new HttpError(404, "That document doesn't exist.");
   return doc;
-}
-
-function createClient(name: string, extra: Partial<Client> = {}): number {
-  const n = scalar("SELECT COALESCE(MAX(CAST(SUBSTR(code, 4) AS INTEGER)), 13) + 1 FROM clients");
-  const code = `CL-${String(n).padStart(3, "0")}`;
-  const cid = run("INSERT INTO clients (code, name, matter, email, phone, lawyer, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    code, name, extra.matter ?? "", extra.email ?? "", extra.phone ?? "", extra.lawyer ?? "", vault.now());
-  vault.log("Client added", `${name} · ${code}`, null, cid);
-  return cid;
 }
 
 // ---------------------------------------------------------------- meta & dashboard
@@ -71,59 +55,63 @@ api.get("/meta", (_req, res) => {
 api.get("/dashboard", (_req, res) => {
   const t = today();
   const iso = isoDate(t);
+  const week = isoDate(addDays(t, 7));
   const invoices = allInvoices();
-  const hearings = all<Doc>(`SELECT d.*, c.name AS client_name FROM documents d LEFT JOIN clients c ON c.id = d.client_id
-                             WHERE d.hearing_date >= ? ORDER BY d.hearing_date LIMIT 6`, iso);
+  const unrecorded = hearings("WHERE h.date < ? AND h.outcome = '' ORDER BY h.date DESC", iso);
 
-  // Actions logged per day for the last 14 days
-  const perDay = new Map(all<{ day: string; n: number }>(
-    "SELECT substr(ts, 1, 10) AS day, COUNT(*) AS n FROM audit WHERE ts >= ? GROUP BY 1", isoDate(addDays(t, -13)),
-  ).map((r) => [r.day, r.n]));
-  const chart = Array.from({ length: 14 }, (_, i) => {
-    const day = isoDate(addDays(t, i - 13));
+  // How many hearings are listed on each of the next 14 days
+  const perDay = new Map(all<{ date: string; n: number }>(
+    "SELECT date, COUNT(*) AS n FROM hearings WHERE date BETWEEN ? AND ? GROUP BY date", iso, isoDate(addDays(t, 13)),
+  ).map((r) => [r.date, r.n]));
+  const load = Array.from({ length: 14 }, (_, i) => {
+    const day = isoDate(addDays(t, i));
     return { date: day, count: perDay.get(day) ?? 0 };
   });
 
-  // Things that need a person, most urgent first
+  // Things that need the lawyer, most urgent first
   const tasks: Task[] = [];
+  for (const h of unrecorded.slice(0, 4)) {
+    tasks.push({ icon: "edit", tone: "amber", title: `Record what happened on ${niceDate(h.date, "%-d %b")}`,
+      sub: `${h.case_number || h.matter_title}${h.purpose ? ` · ${h.purpose}` : ""}`, to: `/diary?date=${h.date}`, cta: "Record" });
+  }
   for (const d of all<Doc>("SELECT * FROM documents WHERE hearing_date >= ? AND hearing_confirmed = 0 ORDER BY hearing_date", iso)) {
-    tasks.push({ icon: "calendar", title: `Confirm hearing on ${niceDate(d.hearing_date)}`,
-      sub: `${d.case_number || d.title} · suggested by AI`, to: `/documents/${d.id}`, cta: "Review" });
+    tasks.push({ icon: "calendar", tone: "amber", title: `Confirm next date ${niceDate(d.hearing_date, "%-d %b")}`,
+      sub: `Found in ${d.title}${d.hearing_page ? `, page ${d.hearing_page}` : ""}`, to: `/documents/${d.id}`, cta: "Check" });
   }
   const reminders = remindersDue();
   if (reminders) {
-    tasks.push({ icon: "bell", title: `${reminders} reminder${reminders > 1 ? "s" : ""} due today`,
-      sub: "Hearing tomorrow · email the lawyer", action: "remind", cta: "Send" });
+    tasks.push({ icon: "bell", tone: "blue", title: `${reminders} hearing reminder${reminders > 1 ? "s" : ""} to send`,
+      sub: "Matters listed today or tomorrow", action: "remind", cta: "Send" });
   }
   for (const d of all<Doc>("SELECT * FROM documents WHERE status = 'Awaiting review' ORDER BY created_at DESC LIMIT 3")) {
-    tasks.push({ icon: "sparkles", title: `Check AI summary: ${d.title}`,
+    tasks.push({ icon: "file", tone: "purple", title: `Check the summary of ${d.title}`,
       sub: `${d.doc_type} · added ${niceDate(d.created_at)}`, to: `/documents/${d.id}`, cta: "Open" });
   }
   for (const i of invoices.filter((x) => x.status === "Overdue")) {
-    tasks.push({ icon: "receipt", title: `${i.inv.number} is overdue`,
+    tasks.push({ icon: "receipt", tone: "red", title: `${i.inv.number} is overdue`,
       sub: `${inr(i.balance)} due since ${niceDate(i.inv.due)}`, to: `/billing/${i.inv.id}`, cta: "Open" });
   }
 
   const body: Dashboard = {
     kpi: {
-      documents: scalar("SELECT COUNT(*) FROM documents"),
-      new_week: scalar("SELECT COUNT(*) FROM documents WHERE created_at >= ?", isoDate(addDays(t, -6))),
-      hearings_14: scalar("SELECT COUNT(*) FROM documents WHERE hearing_confirmed = 1 AND hearing_date BETWEEN ? AND ?",
-        iso, isoDate(addDays(t, 14))),
-      next_hearing: hearings.find((h) => h.hearing_confirmed)?.hearing_date ?? null,
-      review: scalar("SELECT COUNT(*) FROM documents WHERE status = 'Awaiting review'"),
-      outstanding: invoices.reduce((s, i) => s + i.balance, 0),
+      today: scalar("SELECT COUNT(*) FROM hearings WHERE date = ?", iso),
+      week: scalar("SELECT COUNT(*) FROM hearings WHERE date BETWEEN ? AND ?", iso, week),
+      overdue: scalar("SELECT COUNT(*) FROM deadlines WHERE done = 0 AND due < ?", iso),
+      due_week: scalar("SELECT COUNT(*) FROM deadlines WHERE done = 0 AND due BETWEEN ? AND ?", iso, week),
+      unrecorded: unrecorded.length,
+      outstanding: invoices.reduce((sum, i) => sum + i.balance, 0),
       invoices_due: invoices.filter((i) => i.balance > 0).length,
     },
-    hearings,
+    today: hearings("WHERE h.date = ? ORDER BY m.court, m.case_number", iso),
+    upcoming: hearings("WHERE h.date > ? AND h.date <= ? ORDER BY h.date, m.court LIMIT 8", iso, week),
+    deadlines: all<Deadline>(`${DEADLINE_SQL} WHERE d.done = 0 AND d.due <= ? ORDER BY d.due LIMIT 8`, week),
+    load,
+    tasks,
     recent: all<DocRow>(`SELECT d.*, c.name AS client_name, v.size, v.filename, v.version FROM documents d
                          LEFT JOIN clients c ON c.id = d.client_id
                          JOIN versions v ON v.document_id = d.id
                            AND v.version = (SELECT MAX(version) FROM versions WHERE document_id = d.id)
                          ORDER BY d.created_at DESC LIMIT 5`),
-    chart,
-    tasks,
-    health: status(),
     activity: recentActivity(6),
   };
   res.json(body);
@@ -159,7 +147,11 @@ api.get("/documents", (req, res) => {
 });
 
 api.get("/upload-options", (_req, res) => {
-  res.json({ clients: all<Client>("SELECT * FROM clients ORDER BY name"), doc_types: ai.DOC_TYPES });
+  res.json({
+    clients: all<Client>("SELECT * FROM clients ORDER BY name"),
+    matters: matterRows("WHERE m.status = 'Open'"),
+    doc_types: ai.DOC_TYPES,
+  });
 });
 
 api.post("/documents", upload.single("file"), async (req, res) => {
@@ -167,18 +159,30 @@ api.post("/documents", upload.single("file"), async (req, res) => {
   if (!file) throw new HttpError(400, "Choose a file to upload.");
   if (!allowed(file.originalname)) throw new HttpError(400, "Lex AI accepts PDF, text and image files (PNG, JPG, WEBP).");
   let clientId: number | null = Number(req.body.client_id) || null;
-  const newClient = str(req.body.new_client);
-  if (req.body.client_id === "new") clientId = newClient ? createClient(newClient) : null;
+  let caseNumber = str(req.body.case_number);
+  // Uploading from a matter files the document straight under it
+  const matter = Number(req.body.matter_id)
+    ? get<{ id: number; client_id: number | null; case_number: string }>("SELECT * FROM matters WHERE id = ?", Number(req.body.matter_id))
+    : undefined;
+  if (matter) {
+    clientId = matter.client_id;
+    caseNumber = caseNumber || matter.case_number;
+  } else if (req.body.client_id === "new") {
+    const newClient = str(req.body.new_client);
+    clientId = newClient ? createClient(newClient) : null;
+  }
   const title = str(req.body.title) ||
     path.parse(file.originalname).name.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+  let docId: number;
   try {
-    const docId = await vault.ingest(file.buffer, file.originalname, {
-      title, clientId, caseNumber: str(req.body.case_number), docType: str(req.body.doc_type),
+    docId = await vault.ingest(file.buffer, file.originalname, {
+      title, clientId, matterId: matter?.id ?? null, caseNumber, docType: str(req.body.doc_type),
     });
-    res.status(201).json({ id: docId });
   } catch (err) {
     throw new HttpError(422, `That file could not be read: ${String(err).slice(0, 160)}`);
   }
+  linkDocument(docId);
+  res.status(201).json({ id: docId });
 });
 
 api.get("/documents/:id", (req, res) => {
@@ -240,16 +244,21 @@ api.post("/documents/:id/hearing", (req, res) => {
   getDoc(docId);
   if (req.body?.action === "clear") {
     run("UPDATE documents SET hearing_date = '', hearing_page = NULL, hearing_confirmed = 0 WHERE id = ?", docId);
-    vault.log("Hearing removed", "", docId);
-    res.json({ message: "Hearing date removed." });
+    vault.log("AI date dismissed", "", docId);
+    res.json({ message: "Date dismissed." });
     return;
   }
   const date = str(req.body?.date);
   if (!isValidIsoDate(date)) throw new HttpError(400, "Enter a valid date.");
-  run("UPDATE documents SET hearing_date = ?, hearing_confirmed = 1, reminder_sent = 0 WHERE id = ?", date, docId);
-  const sendOn = isoDate(addDays(parseDate(date), -1));
-  vault.log("Hearing confirmed", `${niceDate(date)} · reminder on ${niceDate(sendOn)}`, docId);
-  res.json({ message: `Hearing confirmed. A reminder goes out on ${niceDate(sendOn)}.` });
+  // Confirming puts the date in the matter's diary, opening the matter if needed
+  const matterId = transaction(() => {
+    const mid = linkDocument(docId, true)!;
+    addHearing(mid, date, str(req.body?.purpose), docId);
+    run("UPDATE documents SET hearing_date = ?, hearing_confirmed = 1 WHERE id = ?", date, docId);
+    vault.log("Hearing confirmed", `${niceDate(date)} · added to the diary`, docId);
+    return mid;
+  });
+  res.json({ message: `Added to the diary for ${niceDate(date, "%a %-d %b %Y")}.`, matter_id: matterId });
 });
 
 api.post("/documents/:id/verify", (req, res) => {
@@ -300,35 +309,6 @@ api.post("/documents/:id/ask", async (req, res) => {
   res.json({ ...result, ms: Math.round(performance.now() - t0) });
 });
 
-// ---------------------------------------------------------------- hearings
-
-api.get("/hearings", (_req, res) => {
-  const iso = isoDate();
-  const rows = all<Doc>(`SELECT d.*, c.name AS client_name FROM documents d LEFT JOIN clients c ON c.id = d.client_id
-                         WHERE d.hearing_date != '' ORDER BY d.hearing_date`);
-  res.json({
-    upcoming: rows.filter((r) => r.hearing_confirmed && r.hearing_date >= iso),
-    pending: rows.filter((r) => !r.hearing_confirmed && r.hearing_date >= iso),
-    past: rows.filter((r) => r.hearing_date < iso).reverse().slice(0, 8),
-    due: remindersDue(),
-    all: rows,
-  });
-});
-
-api.post("/hearings/remind", (_req, res) => {
-  const due = all<Doc & { lawyer: string }>(`SELECT d.*, c.lawyer FROM documents d LEFT JOIN clients c ON c.id = d.client_id
-    WHERE hearing_confirmed = 1 AND reminder_sent = 0 AND hearing_date BETWEEN ? AND ?`,
-  isoDate(), isoDate(addDays(today(), 1)));
-  transaction(() => {
-    for (const d of due) {
-      run("UPDATE documents SET reminder_sent = 1 WHERE id = ?", d.id);
-      vault.log("Reminder email sent", `To ${d.lawyer || "the lawyer"}: ${d.case_number || d.title} on ${niceDate(d.hearing_date)}`,
-        d.id, null, "Scheduler");
-    }
-  });
-  res.json({ message: due.length ? `${due.length} reminder email(s) sent.` : "No reminders are due yet." });
-});
-
 // ---------------------------------------------------------------- clients
 
 api.get("/clients", (req, res) => {
@@ -359,18 +339,10 @@ api.get("/clients/:id", (req, res) => {
   const client = get<Client>("SELECT * FROM clients WHERE id = ?", cid);
   if (!client) throw new HttpError(404, "That client doesn't exist.");
   const docs = all<Doc>("SELECT * FROM documents WHERE client_id = ? ORDER BY created_at DESC", cid);
-  const matters = new Map<string, { case: string; docs: number; next: string | null }>();
-  for (const d of docs) {
-    const key = d.case_number || "General";
-    const m = matters.get(key) ?? { case: key, docs: 0, next: null };
-    m.docs += 1;
-    if (d.hearing_confirmed && d.hearing_date >= isoDate() && (!m.next || d.hearing_date < m.next)) m.next = d.hearing_date;
-    matters.set(key, m);
-  }
   const invoices = all<{ id: number }>("SELECT id FROM invoices WHERE client_id = ? ORDER BY issued DESC", cid)
     .map((r) => invoiceTotals(r.id)!);
   res.json({
-    client, docs, matters: [...matters.values()], invoices,
+    client, docs, matters: matterRows("WHERE m.client_id = ?", cid), invoices,
     balance: invoices.reduce((s, i) => s + i.balance, 0),
     activity: recentActivity(15, "WHERE a.client_id = ?", cid),
   });
@@ -436,6 +408,7 @@ api.post("/invoices/:id/payments", (req, res) => {
 
 // ---------------------------------------------------------------- activity & status
 
+registerDiary(api);
 api.get("/activity", (_req, res) => res.json(recentActivity(200)));
 api.get("/status", (_req, res) => res.json(status()));
 api.use((_req, _res, next) => next(new HttpError(404, "Not found")));

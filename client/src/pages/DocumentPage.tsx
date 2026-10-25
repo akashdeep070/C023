@@ -22,6 +22,7 @@ export function DocumentPage() {
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const [date, setDate] = useState("");
+  const [purpose, setPurpose] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   useTitle(data?.doc.title ?? "Document");
 
@@ -91,10 +92,13 @@ export function DocumentPage() {
           <h1>{doc.title}</h1>
           <div className="row wrap-row" style={{ marginTop: 16, gap: 10 }}>
             <span className={docBadge(doc.status)}>{doc.status}</span>
+            {doc.matter_id && doc.matter_title && (
+              <Link className="badge blue" to={`/matters/${doc.matter_id}`}><Icon name="briefcase" size={13} /> {doc.matter_title}</Link>
+            )}
             {doc.client_name && doc.client_id && (
               <Link className="badge line" to={`/clients/${doc.client_id}`}><Icon name="user" size={13} /> {doc.client_name}</Link>
             )}
-            {doc.parties && <span className="badge line">{doc.parties}</span>}
+            {doc.parties && doc.parties !== doc.matter_title && <span className="badge line">{doc.parties}</span>}
           </div>
         </div>
         <div className="head-actions">
@@ -196,38 +200,43 @@ export function DocumentPage() {
 
         <aside className="stack">
           <div className={`card${upcoming ? " tone-blue" : suggested ? " tone-amber" : ""}`}>
-            <div className="row" style={{ gap: 14, marginBottom: 22 }}>
+            <div className="row" style={{ gap: 14, marginBottom: 18 }}>
               <span className={`icon-tile${upcoming ? " blue" : suggested ? " amber" : ""}`}><Icon name="calendar" size={18} /></span>
               <div>
-                <h3>Next hearing</h3>
+                <h3>{doc.hearing_confirmed ? "In the diary" : "Next date"}</h3>
                 <div className="small muted">
-                  {!doc.hearing_date ? "None found in this file"
-                    : doc.hearing_confirmed ? <span className="text-blue">Confirmed by lawyer</span>
-                      : <span className="text-amber">Suggested by AI{doc.hearing_page ? ` · page ${doc.hearing_page}` : ""} · please confirm</span>}
+                  {!doc.hearing_date ? "No date found in this file"
+                    : doc.hearing_confirmed ? <span className="text-blue">Added to the matter's diary</span>
+                      : suggested ? <span className="text-amber">Read from {doc.hearing_page ? `page ${doc.hearing_page}` : "the file"}. Check it, then add it.</span>
+                        : "The date in this file has passed"}
                 </div>
               </div>
             </div>
             {doc.hearing_date && (
               <>
                 <div className={upcoming ? "text-blue" : suggested ? "text-amber" : ""}
-                  style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-.04em", lineHeight: 1.1 }}>
-                  {niceDate(doc.hearing_date, "%-d %B %Y")}
+                  style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-.04em", lineHeight: 1.1 }}>
+                  {niceDate(doc.hearing_date, "%a, %-d %b %Y")}
                 </div>
-                <div className="small muted" style={{ marginTop: 6 }}>
-                  {until(doc.hearing_date)}{upcoming && ` · reminder ${doc.reminder_sent ? "sent" : "the day before"}`}
-                </div>
+                <div className="small muted" style={{ marginTop: 6 }}>{until(doc.hearing_date)}</div>
               </>
             )}
-            <form className="row" style={{ marginTop: 22 }}
-              onSubmit={(e) => { e.preventDefault(); act("hearing", `/documents/${id}/hearing`, { action: "confirm", date }); }}>
-              <input className="input grow" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-              <button className={`btn${upcoming ? " ghost" : ""}`} disabled={busy === "hearing"}>
-                {doc.hearing_confirmed ? "Update" : "Confirm"}
-              </button>
-            </form>
-            {doc.hearing_date && (
-              <button className="btn quiet sm" style={{ padding: 0, marginTop: 8 }}
-                onClick={() => act("hearing", `/documents/${id}/hearing`, { action: "clear" })}>Remove date</button>
+            {doc.hearing_confirmed && doc.matter_id ? (
+              <Link className="btn ghost sm" style={{ marginTop: 16 }} to={`/matters/${doc.matter_id}`}>Open the matter</Link>
+            ) : (
+              <form className="stack" style={{ marginTop: 18, gap: 8 }}
+                onSubmit={(e) => { e.preventDefault(); act("hearing", `/documents/${id}/hearing`, { action: "confirm", date, purpose }); }}>
+                <div className="row" style={{ gap: 8 }}>
+                  <input className="input grow" type="date" value={date} onChange={(e) => setDate(e.target.value)} required aria-label="Date" />
+                </div>
+                <input className="input" value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Listed for, e.g. Written statement" />
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="btn sm" disabled={busy === "hearing"}><Icon name="calendar" size={14} /> Add to diary</button>
+                  {suggested && (
+                    <button type="button" className="btn quiet sm" onClick={() => act("hearing", `/documents/${id}/hearing`, { action: "clear" })}>Dismiss</button>
+                  )}
+                </div>
+              </form>
             )}
           </div>
 

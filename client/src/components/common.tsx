@@ -1,16 +1,16 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { isoDate, niceDate, niceTime, until } from "../../../shared/format";
-import type { AuditRow, Doc, InvoiceStatus } from "../../../shared/types";
+import { daysFromToday, isoDate, niceDate, niceTime, until } from "../../../shared/format";
+import type { AuditRow, Deadline, Hearing, InvoiceStatus } from "../../../shared/types";
 import { Icon } from "./Icon";
 
-export function PageHead({ eyebrow, title, soft, lede, children }:
-  { eyebrow: string; title: ReactNode; soft?: string; lede?: ReactNode; children?: ReactNode }) {
+export function PageHead({ eyebrow, title, lede, children }:
+  { eyebrow?: string; title: ReactNode; lede?: ReactNode; children?: ReactNode }) {
   return (
     <section className="head">
       <div>
-        <div className="eyebrow">{eyebrow}</div>
-        <h1>{title}{soft && <> <span className="soft">{soft}</span></>}</h1>
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+        <h1>{title}</h1>
         {lede && <p className="muted" style={{ marginTop: 8, maxWidth: 620 }}>{lede}</p>}
       </div>
       {children && <div className="head-actions">{children}</div>}
@@ -43,8 +43,9 @@ const ACTION_TONE: Record<string, Tone> = {
   "Integrity alert": "red", "File overwritten": "red",
   "AI summary": "purple", "Hearing date found": "purple", "Asked the file": "purple",
   "Hearing confirmed": "green", Reviewed: "green", "Integrity verified": "green", Restored: "green", "Payment recorded": "green",
-  Uploaded: "blue", "New version": "blue", "Reminder email sent": "blue",
-  "Hearing removed": "amber",
+  "Outcome recorded": "green", "Deadline done": "green",
+  Uploaded: "blue", "New version": "blue", "Reminder email sent": "blue", "Hearing listed": "blue", "Matter opened": "blue",
+  "Hearing removed": "amber", "Deadline added": "amber", "Deadline reopened": "amber",
 };
 export const actionTone = (action: string): Tone => ACTION_TONE[action] ?? "";
 
@@ -73,10 +74,14 @@ export function Timeline({ rows, hideDoc = false }: { rows: AuditRow[]; hideDoc?
   );
 }
 
-/** Confirmed hearings ahead are blue, AI suggestions waiting for a person are amber, past ones stay gray. */
-export function hearingTone(h: Doc): Tone {
-  if (h.hearing_date < isoDate()) return "";
-  return h.hearing_confirmed ? "blue" : "amber";
+/** Upcoming hearings are blue; past ones stay gray. */
+export const hearingTone = (date: string): Tone => (date >= isoDate() ? "blue" : "");
+
+/** Overdue deadlines are red, ones due within a week amber. */
+export function deadlineTone(d: Deadline): Tone {
+  if (d.done) return "green";
+  const n = daysFromToday(d.due);
+  return n < 0 ? "red" : n <= 7 ? "amber" : "";
 }
 
 export function DateBox({ date, tone = "", small }: { date: string; tone?: Tone; small?: boolean }) {
@@ -88,27 +93,41 @@ export function DateBox({ date, tone = "", small }: { date: string; tone?: Tone;
   );
 }
 
-export function HearingRow({ h }: { h: Doc }) {
-  const ahead = h.hearing_date >= isoDate();
+/** One listed hearing: date, case, purpose and what happened last time. */
+export function HearingLine({ h, small }: { h: Hearing; small?: boolean }) {
   return (
-    <Link className="row" to={`/documents/${h.id}`} style={{ gap: 20 }}>
-      <DateBox date={h.hearing_date} tone={hearingTone(h)} />
+    <Link className="row" to={`/matters/${h.matter_id}`} style={{ gap: 14 }}>
+      <DateBox date={h.date} tone={hearingTone(h.date)} small={small} />
       <div className="grow" style={{ minWidth: 0 }}>
-        <div style={{ fontWeight: 500 }}>{h.case_number || h.title}</div>
+        <div className="ellipsis" style={{ fontWeight: 500 }}>{h.case_number || h.matter_title}</div>
+        <div className="small muted ellipsis">
+          {h.purpose || "Hearing"} · {h.client_name || h.matter_title}
+        </div>
+      </div>
+      <div className="small muted nowrap">{until(h.date)}</div>
+    </Link>
+  );
+}
+
+export function DeadlineLine({ d, onToggle }: { d: Deadline; onToggle?: (d: Deadline) => void }) {
+  const tone = deadlineTone(d);
+  return (
+    <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
+      {onToggle && (
+        <input type="checkbox" className="tick" checked={Boolean(d.done)} onChange={() => onToggle(d)}
+          aria-label={d.done ? "Mark as not done" : "Mark as done"} />
+      )}
+      <div className="grow" style={{ minWidth: 0 }}>
+        <div style={{ fontWeight: 500, textDecoration: d.done ? "line-through" : undefined }}>{d.title}</div>
         <div className="small muted">
-          {h.client_name || "No client"} · {h.title}{h.hearing_page ? ` · page ${h.hearing_page}` : ""}
+          {d.matter_id ? <Link to={`/matters/${d.matter_id}`}>{d.case_number || d.matter_title}</Link> : "No matter"}
+          {d.rule && ` · ${d.rule}`}
         </div>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div className="small">{until(h.hearing_date)}</div>
-        {ahead && (
-          <div className="small faint">
-            {h.hearing_confirmed
-              ? (h.reminder_sent ? "Reminder sent" : "Reminder the day before")
-              : <span className="text-amber">Open to confirm →</span>}
-          </div>
-        )}
+        <span className={`badge ${tone}`}>{niceDate(d.due, "%-d %b")}</span>
+        {!d.done && <div className={`small ${tone ? `text-${tone}` : "muted"}`} style={{ marginTop: 4 }}>{until(d.due)}</div>}
       </div>
-    </Link>
+    </div>
   );
 }

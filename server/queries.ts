@@ -64,15 +64,15 @@ export const allInvoices = () =>
 export function clientRows(q = ""): ClientRow[] {
   let sql = `
     SELECT c.*,
-      (SELECT COUNT(DISTINCT case_number) FROM documents d WHERE d.client_id = c.id AND d.case_number != '') AS matters,
+      (SELECT COUNT(*) FROM matters m WHERE m.client_id = c.id AND m.status = 'Open') AS matters,
       (SELECT COUNT(*) FROM documents d WHERE d.client_id = c.id) AS docs,
-      (SELECT MIN(hearing_date) FROM documents d WHERE d.client_id = c.id
-         AND hearing_confirmed = 1 AND hearing_date >= ?) AS next_hearing
+      (SELECT MIN(h.date) FROM hearings h JOIN matters m ON m.id = h.matter_id
+         WHERE m.client_id = c.id AND h.date >= ?) AS next_hearing
     FROM clients c`;
   const args: string[] = [isoDate()];
   if (q) {
     sql += ` WHERE c.name LIKE ? OR c.code LIKE ? OR c.lawyer LIKE ? OR c.matter LIKE ?
-             OR c.id IN (SELECT client_id FROM documents WHERE case_number LIKE ?)`;
+             OR c.id IN (SELECT client_id FROM matters WHERE case_number LIKE ?)`;
     args.push(...Array(5).fill(`%${q}%`));
   }
   return all<Omit<ClientRow, "balance" | "invoices">>(sql + " ORDER BY c.code", ...args).map((c) => {
@@ -88,20 +88,29 @@ export function recentActivity(limit = 8, where = "", ...args: (string | number)
                         ${where} ORDER BY a.ts DESC, a.id DESC LIMIT ?`, ...args, limit);
 }
 
+/** Hearings today or tomorrow that still need a reminder. */
 export function remindersDue(): number {
-  return scalar(`SELECT COUNT(*) FROM documents WHERE hearing_confirmed = 1 AND reminder_sent = 0
-                 AND hearing_date BETWEEN ? AND ?`, isoDate(), isoDate(addDays(today(), 1)));
+  return scalar(`SELECT COUNT(*) FROM hearings WHERE reminder_sent = 0 AND outcome = '' AND date BETWEEN ? AND ?`,
+    isoDate(), isoDate(addDays(today(), 1)));
 }
 
 export function counts(): Counts {
-  const toConfirm = scalar("SELECT COUNT(*) FROM documents WHERE hearing_date >= ? AND hearing_confirmed = 0", isoDate());
+  const t = isoDate();
+  const toConfirm = scalar("SELECT COUNT(*) FROM documents WHERE hearing_date >= ? AND hearing_confirmed = 0", t);
+  const unrecorded = scalar("SELECT COUNT(*) FROM hearings WHERE date < ? AND outcome = ''", t);
+  const overdue = scalar("SELECT COUNT(*) FROM deadlines WHERE done = 0 AND due < ?", t);
   const reminders = remindersDue();
   return {
     documents: scalar("SELECT COUNT(*) FROM documents"),
     clients: scalar("SELECT COUNT(*) FROM clients"),
+    matters: scalar("SELECT COUNT(*) FROM matters WHERE status = 'Open'"),
+    today: scalar("SELECT COUNT(*) FROM hearings WHERE date = ?", t),
     to_confirm: toConfirm,
+    unrecorded,
+    overdue,
+    due_week: scalar("SELECT COUNT(*) FROM deadlines WHERE done = 0 AND due BETWEEN ? AND ?", t, isoDate(addDays(today(), 7))),
     reminders,
-    alerts: toConfirm + reminders,
+    alerts: toConfirm + unrecorded + overdue + reminders,
     invoices_due: allInvoices().filter((i) => i.balance > 0).length,
   };
 }

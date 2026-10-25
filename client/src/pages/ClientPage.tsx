@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { inr, niceDate } from "../../../shared/format";
 import type { ClientDetail } from "../../../shared/types";
 import { Crumbs, Loading, PageHead, Timeline, docBadge, invoiceBadge } from "../components/common";
@@ -8,6 +8,7 @@ import { useApi, useTitle } from "../hooks";
 export function ClientPage() {
   const { id } = useParams();
   const { data, error } = useApi<ClientDetail>(`/clients/${id}`);
+  const navigate = useNavigate();
   useTitle(data?.client.name ?? "Client");
   if (!data) return <Loading error={error} />;
   const { client: c, docs, matters, invoices, balance } = data;
@@ -30,13 +31,21 @@ export function ClientPage() {
       <div className="split">
         <div className="stack">
           <div className="card">
-            <div className="card-head"><h3>Matters</h3></div>
+            <div className="card-head">
+              <h3>Matters</h3>
+              <Link className="btn quiet sm" to={`/matters?new=1&client=${c.id}`}><Icon name="plus" size={14} /> New matter</Link>
+            </div>
             {matters.length ? (
-              <table className="table stack-sm">
-                <thead><tr><th>Case</th><th>Documents</th><th className="r">Next hearing</th></tr></thead>
+              <table className="table compact stack-sm">
+                <thead><tr><th>Matter</th><th>Stage</th><th className="r">Next date</th></tr></thead>
                 <tbody>
                   {matters.map((m) => (
-                    <tr key={m.case}><td className="t">{m.case}</td><td>{m.docs}</td><td className="r">{m.next ? niceDate(m.next) : "Not scheduled"}</td></tr>
+                    <tr className="link" key={m.id} onClick={() => navigate(`/matters/${m.id}`)}>
+                      <td><Link className="t" to={`/matters/${m.id}`}>{m.case_number || m.title}</Link>
+                        <div className="s">{m.case_number ? m.title : m.our_side}</div></td>
+                      <td className="small">{m.status === "Disposed" ? "Disposed" : m.stage || "—"}</td>
+                      <td className="r small">{m.next_hearing ? <span className="badge blue">{niceDate(m.next_hearing, "%-d %b")}</span> : <span className="muted">Not fixed</span>}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>

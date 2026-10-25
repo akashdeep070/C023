@@ -10,8 +10,8 @@ export function Activity() {
 
   return (
     <>
-      <PageHead eyebrow="Audit trail" title="Who did what," soft="and when."
-        lede="Every upload, view, AI run, confirmation, reminder and integrity check is recorded. In production this is CloudTrail plus the app's own log." />
+      <PageHead title="Audit log"
+        lede="Every upload, view, outcome, deadline, reminder and integrity check, with who did it and when." />
       {!data ? <Loading error={error} /> : (
         <div className="card">
           {data.length ? (
