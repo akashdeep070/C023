@@ -1,6 +1,6 @@
 <div align="center">
 
-# Lex AI
+# LEX AI
 
 **Legal files, off paper and into the cloud.**
 
@@ -17,7 +17,7 @@ summarized and searchable.
 
 *Cloud Computing course project · 2026 · all data in the app is dummy data*
 
-<img src="docs/screenshots/dashboard.png" alt="Lex AI overview: matters listed today, deadlines, outcomes to record, fees, today's cause list and things that need attention" width="100%">
+<img src="docs/screenshots/dashboard.png" alt="LEX AI overview: matters listed today, deadlines, outcomes to record, fees, today's cause list and things that need attention" width="100%">
 
 </div>
 
@@ -27,7 +27,7 @@ summarized and searchable.
 
 - [About](#about)
 - [The problem](#the-problem)
-- [What Lex AI does](#what-lex-ai-does)
+- [What LEX AI does](#what-lex-ai-does)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
 - [Demo script](#demo-script-5-minutes)
@@ -41,7 +41,7 @@ summarized and searchable.
 
 ## About
 
-Lex AI is our five-person project for the 2026 Cloud Computing course. It shows how a small law practice can move client files off paper and into the cloud: AI reads each file, and a lawyer always makes the final call. It is an MVP built for the class presentation: every feature works end to end on made-up data, and it runs cheaply on one small server.
+LEX AI is our five-person project for the 2026 Cloud Computing course. It shows how a small law practice can move client files off paper and into the cloud: AI reads each file, and a lawyer always makes the final call. It is an MVP built for the class presentation: every feature works end to end on made-up data, and it runs cheaply on one small server.
 
 📽️ **Pitch deck:** [`docs/pitch-deck.html`](docs/pitch-deck.html), our 14-slide presentation. Download it and open it in a browser; use the arrow keys to move between slides.
 
@@ -57,7 +57,7 @@ Most small practices still run on phones, paper and diaries:
 
 **The gap:** client files have no single safe home, and nothing reminds anyone of a hearing.
 
-## What Lex AI does
+## What LEX AI does
 
 **For the lawyer's day**
 
@@ -67,9 +67,9 @@ Most small practices still run on phones, paper and diaries:
 | ✍️ | **Record the outcome** | After court, write what happened and the next date in one form. The next date goes straight into the diary |
 | 💬 | **Tell the client** | A ready-made update with the outcome and next date. Send it on WhatsApp in one tap, or copy it |
 | 🗂️ | **Matters** | One workspace per case: court, stage, parties, full hearing history, documents, deadlines, fees and activity |
-| ⚖️ | **Conflict check** | While opening a matter, Lex AI warns if the other side is already your client, or your client is an opposite party elsewhere |
+| ⚖️ | **Conflict check** | While opening a matter, LEX AI warns if the other side is already your client, or your client is an opposite party elsewhere |
 | ⏳ | **Deadlines and limitation** | A calculator for common periods (CPC appeals, written statements, NI Act s.138, arbitration s.34, consumer complaints) with the section cited. Add the result as a deadline |
-| 📝 | **Drafting** | A Google Docs-style editor: an A4 page, a formatting toolbar, an outline and autosave. Start from a template and Lex AI fills in the court, case number, parties and next date from the matter. Anything it can't answer is a highlighted blank to fill in. Download for Word or print to PDF |
+| 📝 | **Drafting** | A Google Docs-style editor: an A4 page, a formatting toolbar, an outline and autosave. Start from a template and LEX AI fills in the court, case number, parties and next date from the matter. Anything it can't answer is a highlighted blank to fill in. Download for Word or print to PDF |
 | 📚 | **Templates** | Suit for accounts by an insurance agent (with case-law notes), Form No. 15D, Form No. 26D, and eligibility criteria with terms and conditions, all made from the firm's own files. Also an adjournment application, an s.138 demand notice and a hearing file note |
 | 🔔 | **Reminders** | Hearings today and tomorrow, with outcomes not yet recorded flagged on the overview |
 
@@ -106,12 +106,12 @@ Most small practices still run on phones, paper and diaries:
 
 ## Quick start
 
-You need **Node.js 22** (22.13 or newer). A Groq API key is optional: without one, a local reader takes over and the demo still works.
+You need **Node.js 22** (22.13 or newer). A Groq API key is optional: without one, a local reader takes over and the demo still works. To use Groq, paste your key on the **Status & SLA** page (it is kept in your browser), or put it in `.env`.
 
 ```bash
 git clone https://github.com/akashdeep070/C023.git lex-ai && cd lex-ai
 npm install
-cp .env.example .env        # optional: paste your GROQ_API_KEY
+cp .env.example .env        # optional: a GROQ_API_KEY for everyone using this server
 npm run dev
 ```
 
@@ -142,17 +142,20 @@ The repo is ready for Vercel: the React app is served from Vercel's CDN, and the
 1. Go to [vercel.com/new](https://vercel.com/new) and import the GitHub repo **akashdeep070/C023**.
 2. Set **Project Name** to **`lex-ai-legal-vault`**. The app will live at `https://lex-ai-legal-vault.vercel.app`, if that name is free.
 3. Leave the build settings as they are; `vercel.json` sets them.
-4. Under **Environment Variables**, add `GROQ_API_KEY` with your key from [console.groq.com/keys](https://console.groq.com/keys). Optional: without it, the local reader is used.
+4. Optional: under **Environment Variables**, add `GROQ_API_KEY` with your key from [console.groq.com/keys](https://console.groq.com/keys).
 5. Click **Deploy**.
 
-**Turning on Groq after the first deploy:**
+**Turning on Groq.** There are two ways:
 
-1. In the Vercel project, open **Settings → Environment Variables**.
-2. Add `GROQ_API_KEY` and paste the key (it starts with `gsk_`). Tick **Production** and **Preview**, then **Save**.
-3. Open **Deployments**, click **⋯** on the latest one and choose **Redeploy**. Vercel only passes new variables to new deployments.
-4. Open the app's **Status & SLA** page. The **Groq AI** card tests the key and shows **Working**, or says exactly what is wrong. The sidebar shows **Groq connected**.
+- **In the browser (quickest).** Open **Status & SLA**, paste your key into the **Groq AI** card and click **Save and test**. The key is tested first and only kept if Groq accepts it. It stays in that browser and is sent to the app's server only with requests that use the AI; the server never stores it. Nothing to redeploy. This works locally too.
+- **For everyone, on the server:**
 
-The key stays on the server: the browser never sees it. Stray spaces or quotes pasted with the key are ignored.
+  1. In the Vercel project, open **Settings → Environment Variables**.
+  2. Add `GROQ_API_KEY` and paste the key (it starts with `gsk_`). Tick **Production** and **Preview**, then **Save**.
+  3. Open **Deployments**, click **⋯** on the latest one and choose **Redeploy**. Vercel only passes new variables to new deployments.
+  4. Open **Status & SLA**. The **Groq AI** card tests the key and shows **Working**, or says exactly what is wrong.
+
+A key pasted in a browser is used before the server's. Stray spaces or quotes pasted with a key are ignored.
 
 If the code is not on the repo's default branch, set **Settings → Git → Production Branch** to the branch that has it, or merge it first.
 
@@ -163,6 +166,7 @@ Or from a terminal: `npx vercel --prod`, and choose `lex-ai-legal-vault` as the 
 | | Local / Docker | Vercel |
 | --- | --- | --- |
 | Data | Kept in `data/` | Kept in `/tmp` only while the function stays warm. A cold start brings back fresh demo data |
+| Drafts | In the server's database | **In your browser.** Each Vercel instance has its own short-lived database, so a draft saved on one could be missing on the next ("That draft doesn't exist"). The server still fills new drafts in from their template |
 | Upload size | 20 MB | 4 MB (Vercel caps a function request at 4.5 MB) |
 | "Served by" | `app1` / `app2` | The Vercel region, for example `vercel-bom1` |
 
@@ -183,7 +187,7 @@ Set these in `.env` or the environment. All of them are optional.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `GROQ_API_KEY` | *(empty)* | Turns on Groq. Get a free key at [console.groq.com/keys](https://console.groq.com/keys) |
+| `GROQ_API_KEY` | *(empty)* | Turns on Groq for everyone using this server. Get a free key at [console.groq.com/keys](https://console.groq.com/keys). Or paste a key on the Status page instead, kept in your browser |
 | `GROQ_MODEL` | `llama-3.1-8b-instant` | Text model for summaries, dates and Q&A |
 | `GROQ_VISION_MODEL` | `meta-llama/llama-4-scout-17b-16e-instruct` | Reads text from photos and scans |
 | `PORT` | `3000` | API port |
@@ -255,9 +259,16 @@ The demo runs anywhere with Node. Each local piece stands in for an AWS service 
 
 ## Design and color coding
 
-The interface is hand-written CSS with no UI framework. It follows Vercel's **Geist** design language: Geist and Geist Mono fonts, the Geist gray scale, black primary buttons and a blue focus ring. The layout is a SaaS control panel with a sidebar menu that collapses to an icon rail (☰), or slides in as a drawer on phones.
+The interface is hand-written CSS with no UI framework, in the **Open Analytics** design language: white surfaces with continuous-curvature (squircle) corners, resting on a quiet grey stage, drawn in a single ink, moved by a single spring.
 
-Grays carry the layout. Color is only used to mean something:
+- **One ink.** Every grey and hairline is `#292929` mixed into transparency at a fixed percentage. The page background between plates is the only divider: no horizontal rules.
+- **Squircles for surfaces, pills for actions.** Buttons are pills that press down when clicked. One accent blue (`#305dde`) is kept for primary actions and the chart.
+- **Inter Tight** (self-hosted), never heavier than weight 500, with **Geist Mono** for case numbers and fingerprints. Labels are sentence case.
+- **Motion:** data arrives by focus (a short fade from a slight blur), menus spring in, notices pulse on success and shake on error. Loading shows a skeleton matched to the layout. All of it turns off when the system asks for reduced motion.
+
+The layout is a control panel with a sidebar menu that collapses to an icon rail (☰), or slides in as a drawer on phones.
+
+Status colors are text tints and dots on a neutral wash, never filled panels:
 
 | Color | Means | Where you see it |
 | --- | --- | --- |
@@ -267,7 +278,7 @@ Grays carry the layout. Color is only used to mean something:
 | 🔵 Blue | Scheduled, links and focus | Hearings in the diary, next dates, uploads, reminders, the hearings chart |
 | 🟣 Purple | AI | Summaries, *Ask the file* answers, AI steps in the pipeline |
 
-Every color is paired with a text label, so nothing relies on color alone. Badge text uses the darker shade of each color and passes WCAG AA contrast.
+Every color is paired with a text label, so nothing relies on color alone. Status text uses the 700 shade of each color and passes WCAG AA contrast. Keyboard focus always shows a 3px ring.
 
 <p align="center"><img src="docs/screenshots/mobile.png" alt="The diary on a phone" width="280"></p>
 
@@ -282,7 +293,7 @@ Every color is paired with a text label, so nothing relies on color alone. Badge
 | First 60 PDF pages only | Bounded extraction time |
 | Node's built-in `node:sqlite` | No database server and no native modules to compile |
 | One Node process per container | About 80 MB of memory each, so two fit on a t3.micro |
-| No UI framework or editor library | The editor uses the browser's own editing. The whole React bundle is about 130 KB gzipped |
+| No UI framework or editor library | The editor uses the browser's own editing. The whole React bundle is about 135 KB gzipped, plus self-hosted fonts |
 | Autosave waits for a pause | One save request 0.8 s after you stop typing, not one per key |
 
 ## API reference
@@ -365,7 +376,8 @@ All endpoints return JSON. Errors come back as `{ "error": "message" }` with a 4
 | Method | Path | Does |
 | --- | --- | --- |
 | `GET` | `/health` | `200` when the database and storage are fine, `503` otherwise. For load balancer health checks |
-| `GET` | `/api/status` | Uptime, request count, average/P95/P99 latency, error rate, checks, AI model |
+| `GET` | `/api/status` | Uptime, request count, average/P95/P99 latency, error rate, checks, AI model and the last Groq result |
+| `POST` | `/api/ai/check` | A one-token Groq request → `{ source, health, rejected }`. Send `X-Groq-Key` to test a key from the browser |
 | `GET` | `/api/dashboard` | Everything the overview page shows |
 | `GET` | `/api/meta` | Instance name, AI status and sidebar counts |
 | `GET` | `/api/activity` | The latest 200 audit entries |
@@ -399,6 +411,7 @@ client/                 React app (TypeScript + Vite)
   src/pages/            One component per page (DraftEditor.tsx is the document editor)
   src/components/       Sidebar layout, outcome form, client update, drafts, calendar, chart, icons
   src/richtext.ts       Cleans pasted and saved HTML; exports a draft to Word
+  src/draftStore.ts     Where drafts live: the server's database, or the browser on Vercel
   src/styles.css        The whole design system in one hand-written file
 samples/                Files to upload during the demo
 docs/screenshots/       Images used in this README
@@ -414,13 +427,14 @@ nginx.conf              Load balancing with failover
 | Problem | Fix |
 | --- | --- |
 | `node:sqlite` not found | Use Node.js 22.13 or newer (`node -v`) |
-| Sidebar says **Local reader** | No `GROQ_API_KEY` is set. The app keeps working with keyword and date matching. On Vercel, add the key and **redeploy** |
-| Sidebar says **Groq not working** | Open **Status & SLA**: the Groq AI card gives the reason. *Rejected the API key*: copy the key again from console.groq.com and redeploy. *Does not offer the model*: set `GROQ_MODEL` to a current Groq model. *Rate limit*: wait a minute. Files read in the meantime say why in their activity log; press **Re-read** once Groq works |
+| Sidebar says **Local reader** | No Groq key yet. The app keeps working with keyword and date matching. Paste a key on **Status & SLA**, or set `GROQ_API_KEY` (on Vercel, then **redeploy**) |
+| Sidebar says **Groq not working** | Open **Status & SLA**: the Groq AI card gives the reason. *Rejected the API key*: copy the key again from console.groq.com and paste it on the Status page (or update `GROQ_API_KEY` and redeploy). *Does not offer the model*: set `GROQ_MODEL` to a current Groq model. *Rate limit*: wait a minute. Files read in the meantime say why in their activity log; press **Re-read** once Groq works |
 | A PDF shows "no text layer" | It is a scanned image. Upload the pages as photos so the vision model can read them |
 | Port 3000 or 5173 is busy | `PORT=3001 npm start`, or stop the other process |
 | Want fresh demo data | Stop the app and delete the `data/` folder. Sample dates are relative to today |
 | Proxy errors right after `npm run dev` | The API is still seeding demo data. Wait a second and refresh |
 | Uploads vanished on Vercel | Vercel's `/tmp` storage resets when a function cold-starts. Use Docker for data that lasts |
+| "That draft doesn't exist" | On Vercel, drafts live in the browser they were written in, so open them from that browser. Locally, the draft was deleted or the `data/` folder was reset |
 | "Files must be 4 MB or smaller" on Vercel | Vercel's request size limit. Compress the PDF or run locally or with Docker |
 
 ## Team
@@ -435,4 +449,4 @@ nginx.conf              Load balancing with failover
 
 ---
 
-<sub>Lex AI is a class project. Every name, case number and amount in the app is fictional. AI output is a draft that a lawyer confirms. Do not upload real client documents.</sub>
+<sub>LEX AI is a class project. Every name, case number and amount in the app is fictional. AI output is a draft that a lawyer confirms. Do not upload real client documents.</sub>

@@ -1,4 +1,4 @@
-// Lex AI API: a small cloud vault for legal files, with Groq-powered reading.
+// LEX AI API: a small cloud vault for legal files, with Groq-powered reading.
 // This module builds the Express app. server/index.ts serves it on a port;
 // api/index.js runs it as a Vercel serverless function.
 
@@ -39,6 +39,9 @@ app.use((req, res, next) => {
 
 const api = express.Router();
 
+/** A Groq key pasted in the browser rides along with requests that use the AI. It is never stored or logged. */
+const groqKey = (req: Request) => ai.cleanKey(req.get("x-groq-key") ?? "") || undefined;
+
 function getDoc(docId: number): Doc {
   const doc = get<Doc>(`SELECT d.*, c.name AS client_name, c.code AS client_code, m.title AS matter_title
                         FROM documents d LEFT JOIN clients c ON c.id = d.client_id
@@ -50,7 +53,11 @@ function getDoc(docId: number): Doc {
 // ---------------------------------------------------------------- meta & dashboard
 
 api.get("/meta", (_req, res) => {
-  res.json({ instance: INSTANCE, ai: status().ai, counts: counts(), max_upload_mb: MAX_UPLOAD_MB });
+  res.json({
+    instance: INSTANCE, ai: status().ai, counts: counts(), max_upload_mb: MAX_UPLOAD_MB,
+    // Each Vercel function instance has its own short-lived database, so drafts are kept in the browser there
+    drafts_in_browser: Boolean(process.env.VERCEL),
+  });
 });
 
 api.get("/dashboard", (_req, res) => {
@@ -158,7 +165,7 @@ api.get("/upload-options", (_req, res) => {
 api.post("/documents", upload.single("file"), async (req, res) => {
   const file = req.file;
   if (!file) throw new HttpError(400, "Choose a file to upload.");
-  if (!allowed(file.originalname)) throw new HttpError(400, "Lex AI accepts PDF, text and image files (PNG, JPG, WEBP).");
+  if (!allowed(file.originalname)) throw new HttpError(400, "LEX AI accepts PDF, text and image files (PNG, JPG, WEBP).");
   let clientId: number | null = Number(req.body.client_id) || null;
   let caseNumber = str(req.body.case_number);
   // Uploading from a matter files the document straight under it
@@ -177,7 +184,7 @@ api.post("/documents", upload.single("file"), async (req, res) => {
   let docId: number;
   try {
     docId = await vault.ingest(file.buffer, file.originalname, {
-      title, clientId, matterId: matter?.id ?? null, caseNumber, docType: str(req.body.doc_type),
+      title, clientId, matterId: matter?.id ?? null, caseNumber, docType: str(req.body.doc_type), groqKey: groqKey(req),
     });
   } catch (err) {
     throw new HttpError(422, `That file could not be read: ${String(err).slice(0, 160)}`);
@@ -214,14 +221,14 @@ api.post("/documents/:id/version", upload.single("file"), async (req, res) => {
   const docId = id(req);
   const doc = getDoc(docId);
   if (!req.file || !allowed(req.file.originalname)) throw new HttpError(400, "Choose a PDF, text or image file.");
-  await vault.ingest(req.file.buffer, req.file.originalname, { title: doc.title, documentId: docId });
+  await vault.ingest(req.file.buffer, req.file.originalname, { title: doc.title, documentId: docId, groqKey: groqKey(req) });
   res.json({ message: "New version saved. Earlier versions are kept." });
 });
 
 api.post("/documents/:id/reanalyze", async (req, res) => {
   const docId = id(req);
   getDoc(docId);
-  const result = await ai.analyze(vault.pagesOf(vault.latestVersion(docId)));
+  const result = await ai.analyze(vault.pagesOf(vault.latestVersion(docId)), groqKey(req));
   run(`UPDATE documents SET summary = ?, key_points = ?, ai_source = ?, parties = COALESCE(NULLIF(?, ''), parties),
        hearing_date = ?, hearing_page = ?, hearing_confirmed = 0, updated_at = ? WHERE id = ?`,
     result.summary, JSON.stringify(result.key_points), result.source, result.parties,
@@ -284,7 +291,7 @@ api.post("/documents/:id/tamper", (req, res) => {
   getDoc(docId);
   const v = vault.latestVersion(docId)!;
   vault.tamper(v.stored_name);
-  vault.log("File overwritten", `v${v.version} changed outside Lex AI (demo)`, docId, null, "Unknown script");
+  vault.log("File overwritten", `v${v.version} changed outside LEX AI (demo)`, docId, null, "Unknown script");
   res.json({ message: "Demo: the working copy was overwritten. Now run Verify.", kind: "error" });
 });
 
@@ -305,7 +312,7 @@ api.post("/documents/:id/ask", async (req, res) => {
   const question = str(req.body?.question).slice(0, 300);
   if (!question) throw new HttpError(400, "Type a question.");
   const t0 = performance.now();
-  const result = await ai.ask(question, vault.pagesOf(vault.latestVersion(docId)));
+  const result = await ai.ask(question, vault.pagesOf(vault.latestVersion(docId)), groqKey(req));
   vault.log("Asked the file", question, docId);
   res.json({ ...result, ms: Math.round(performance.now() - t0) });
 });
@@ -413,8 +420,12 @@ registerDiary(api);
 registerDrafts(api);
 api.get("/activity", (_req, res) => res.json(recentActivity(200)));
 api.get("/status", (_req, res) => res.json(status()));
-// A one-token Groq request, run only when someone presses "Test Groq"
-api.post("/ai/check", async (_req, res) => res.json({ enabled: ai.enabled(), health: await ai.check() }));
+// A one-token Groq request, run when the Status page opens or someone presses "Test Groq"
+api.post("/ai/check", async (req, res) => {
+  const key = groqKey(req);
+  const health = await ai.check(key);
+  res.json({ source: key ? "browser" : ai.enabled() ? "server" : null, health, rejected: Boolean(health?.error.startsWith(ai.REJECTED)) });
+});
 api.use((_req, _res, next) => next(new HttpError(404, "Not found")));
 
 app.use("/api", api);

@@ -213,7 +213,7 @@ Name: Ananya Sharma
 Address: Flat 12, Kothrud, Pune 411038
 ID type: Aadhaar (masked) XXXX XXXX 4821
 
-This sample document is used only to demonstrate Lex AI.`,
+This sample document is used only to demonstrate LEX AI.`,
       analysis: groq({
         summary: "A masked identity declaration for Ananya Sharma with her Pune address. " +
           "It supports her standing as plaintiff in CS 214/2026.",

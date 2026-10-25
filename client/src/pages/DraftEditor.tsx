@@ -6,18 +6,17 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { isoDate, niceDate, niceTime } from "../../../shared/format";
 import { blankHtml, fieldValues, templateById, type FieldKey, type TemplateContext } from "../../../shared/templates";
 import type { DraftDetail } from "../../../shared/types";
-import { api } from "../api";
-import { Loading } from "../components/common";
+import { Loading, PageHead } from "../components/common";
 import { useFlash } from "../components/Flash";
 import { Icon } from "../components/Icon";
-import { useApi, useTitle } from "../hooks";
+import { SaveError, draftStore, matterContext, type DraftChange, type DraftStore } from "../draftStore";
+import { useTitle } from "../hooks";
 import { cleanHtml, download, fileName, wordFile } from "../richtext";
 
 const A4_WIDTH = 794; // px at 96 dpi
 const A4_RATIO = 297 / 210;
 
 type SaveState = "saved" | "saving" | "unsaved" | "error";
-type Pending = { title?: string; html?: boolean; matter_id?: number | null };
 type MatterContext = Omit<TemplateContext, "today">;
 interface BlankGroup { label: string; count: number; key: string | null }
 interface Stats { words: number; pages: number; blanks: BlankGroup[]; headings: { level: number; text: string }[] }
@@ -46,18 +45,35 @@ const tableHtml = (rows: number, cols: number) =>
   `<table><tbody>${`<tr>${"<td><br></td>".repeat(cols)}</tr>`.repeat(rows)}</tbody></table><p><br></p>`;
 
 export function DraftEditor() {
-  const { id } = useParams();
-  const { data, error } = useApi<DraftDetail>(`/drafts/${id}`);
-  if (!data || String(data.draft.id) !== id) return <Loading error={error} />;
-  return <Editor key={data.draft.id} detail={data} />;
+  const { id = "" } = useParams();
+  const [loaded, setLoaded] = useState<{ id: string; detail?: DraftDetail; store?: DraftStore; error?: string } | null>(null);
+  useEffect(() => {
+    let live = true;
+    draftStore()
+      .then(async (store) => ({ id, store, detail: await store.get(Number(id)) }))
+      .then((r) => live && setLoaded(r), (err: Error) => live && setLoaded({ id, error: err.message }));
+    return () => { live = false; };
+  }, [id]);
+
+  if (loaded?.id === id && loaded.error) {
+    return (
+      <PageHead eyebrow="Drafts" title="That draft doesn't exist." lede={loaded.error}>
+        <Link className="btn" to="/drafts"><Icon name="arrow-left" size={16} /> All drafts</Link>
+      </PageHead>
+    );
+  }
+  if (loaded?.id !== id || !loaded.detail) return <Loading />;
+  return <Editor key={id} detail={loaded.detail} store={loaded.store!} />;
 }
 
-function Editor({ detail }: { detail: DraftDetail }) {
+function Editor({ detail, store }: { detail: DraftDetail; store: DraftStore }) {
   const { draft } = detail;
   const page = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLDivElement>(null);
   const range = useRef<Range | null>(null);   // the last selection inside the page
-  const pending = useRef<Pending>({});
+  const dirty = useRef(false);                // edits not saved yet
+  const titleRef = useRef(draft.title);
+  const matterRef = useRef(draft.matter_id);
   const saveTimer = useRef(0);
   const statsTimer = useRef(0);
   const [title, setTitle] = useState(draft.title);
@@ -78,40 +94,32 @@ function Editor({ detail }: { detail: DraftDetail }) {
 
   // ------------------------------------------------------------ saving
 
+  /** Everything a save sends: the whole draft, so nothing depends on what was saved before. */
+  const current = (): DraftChange | null => page.current
+    ? { title: titleRef.current.trim() || "Untitled document", html: page.current.innerHTML, matter_id: matterRef.current }
+    : null; // the page is gone: never save an empty one by accident
+
   const flush = useCallback(async () => {
     window.clearTimeout(saveTimer.current);
-    const changes = pending.current;
-    if (!Object.keys(changes).length) return;
-    const body: Record<string, unknown> = { ...changes };
-    delete body.html;
-    if (changes.html) {
-      if (!page.current) return; // never save an empty page by accident
-      body.html = page.current.innerHTML;
-    }
-    pending.current = {};
+    const change = current();
+    if (!dirty.current || !change) return;
+    dirty.current = false;
     setSave("saving");
-    let retry = true; // network trouble and server errors are retried; a refused save waits for the next edit
     try {
-      const res = await fetch(`/api/drafts/${draft.id}`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-      });
-      const out = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        retry = res.status >= 500;
-        throw new Error(out.error ?? `Save failed (${res.status})`);
-      }
-      setSavedAt(out.updated_at);
-      setSave(Object.keys(pending.current).length ? "unsaved" : "saved");
+      setSavedAt(await store.save(draft.id, change));
+      setSave(dirty.current ? "unsaved" : "saved");
     } catch (err) {
-      pending.current = { ...changes, ...pending.current };
+      dirty.current = true;
+      // Network trouble and server errors are retried; a refused save waits for the next edit
+      const retry = !(err instanceof SaveError) || err.status === 0 || err.status >= 500;
       setSave("error");
-      setSaveError(retry ? "Can't reach the server. Trying again in a few seconds." : (err as Error).message);
+      setSaveError((err as Error).message);
       if (retry) saveTimer.current = window.setTimeout(flush, 5000);
     }
-  }, [draft.id]);
+  }, [draft.id, store]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const queue = useCallback((change: Pending) => {
-    Object.assign(pending.current, change);
+  const queue = useCallback(() => {
+    dirty.current = true;
     setSave("unsaved");
     window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(flush, 800);
@@ -138,7 +146,7 @@ function Editor({ detail }: { detail: DraftDetail }) {
   }, []);
 
   const changed = useCallback(() => {
-    queue({ html: true });
+    queue();
     window.clearTimeout(statsTimer.current);
     statsTimer.current = window.setTimeout(measure, 250);
   }, [queue, measure]);
@@ -158,10 +166,8 @@ function Editor({ detail }: { detail: DraftDetail }) {
     root.classList.add("rail");
 
     const onUnload = (e: BeforeUnloadEvent) => {
-      if (!Object.keys(pending.current).length || !page.current) return;
-      const body = JSON.stringify({ ...pending.current, html: page.current.innerHTML });
-      if (body.length > 60_000) { e.preventDefault(); return; } // too big to send while closing; ask the browser to warn
-      fetch(`/api/drafts/${draft.id}`, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body });
+      const change = current();
+      if (dirty.current && change && !store.saveOnUnload(draft.id, change)) e.preventDefault(); // ask the browser to warn
     };
     let frame = 0;
     const onSelection = () => {
@@ -185,7 +191,7 @@ function Editor({ detail }: { detail: DraftDetail }) {
       fitObserver.disconnect();
       window.clearTimeout(statsTimer.current);
     };
-  }, [draft.id]);
+  }, [draft.id, store]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ------------------------------------------------------------ editing
 
@@ -288,7 +294,7 @@ function Editor({ detail }: { detail: DraftDetail }) {
       n += 1;
     }
     page.current!.normalize();
-    if (n) { queue({ html: true }); measure(); }
+    if (n) { queue(); measure(); }
     return n;
   };
 
@@ -318,13 +324,14 @@ function Editor({ detail }: { detail: DraftDetail }) {
 
   const rename = (value: string) => {
     setTitle(value);
-    queue({ title: value });
+    titleRef.current = value;
+    queue();
   };
   const linkMatter = async (value: string) => {
-    queue({ matter_id: value ? Number(value) : null });
+    matterRef.current = value ? Number(value) : null;
+    queue();
     await flush();
-    const d = await api.get<DraftDetail>(`/drafts/${draft.id}`);
-    setCtx({ matter: d.matter, client: d.client, last: d.last, next: d.next });
+    setCtx(await matterContext(matterRef.current));
   };
   const print = async () => {
     await flush();
@@ -334,16 +341,15 @@ function Editor({ detail }: { detail: DraftDetail }) {
   const exportText = () => download(new Blob([page.current!.innerText], { type: "text/plain" }), fileName(title, "txt"));
   const copy = async () => {
     await flush();
-    const r = await api.post<{ id: number }>(`/drafts/${draft.id}/copy`);
+    const id = await store.copy(draft.id, { title: titleRef.current, html: page.current!.innerHTML });
     flash("Copy made. You are editing the copy.");
-    navigate(`/drafts/${r.id}`);
+    navigate(`/drafts/${id}`);
   };
   const remove = async () => {
     if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
-    pending.current = {};
+    dirty.current = false;
     window.clearTimeout(saveTimer.current);
-    const r = await api.post(`/drafts/${draft.id}/delete`);
-    flash(r.message ?? "Deleted.");
+    flash(await store.remove(draft.id));
     navigate("/drafts");
   };
 

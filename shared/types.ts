@@ -121,6 +121,7 @@ export interface Meta {
   ai: AiStatus;
   counts: Counts;
   max_upload_mb: number;
+  drafts_in_browser: boolean; // on Vercel, where the server's database doesn't last
 }
 
 export interface Status {
@@ -287,6 +288,9 @@ export interface DraftRow extends Omit<Draft, "html"> {
   matter_title: string | null;
   client_name: string | null;
 }
+
+/** A draft with its HTML and its matter's labels: what a browser keeps when it stores drafts itself. */
+export type DraftWithMatter = DraftRow & { html: string };
 
 export interface DraftDetail {
   draft: Draft;

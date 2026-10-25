@@ -22,6 +22,6 @@ export function useApi<T>(path: string | null) {
 
 export function useTitle(title: string) {
   useEffect(() => {
-    document.title = title ? `${title} · Lex AI` : "Lex AI";
+    document.title = title ? `${title} · LEX AI` : "LEX AI";
   }, [title]);
 }

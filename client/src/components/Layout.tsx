@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import type { Meta } from "../../../shared/types";
-import { CHANGED, api } from "../api";
+import { CHANGED, api, browserGroqKey } from "../api";
 import { FlashOutlet } from "./Flash";
 import { Icon } from "./Icon";
 
@@ -9,11 +9,11 @@ type NavItem = { to: string; label: string; icon: string; count?: keyof Meta["co
 const NAV: { group: string; items: NavItem[] }[] = [
   { group: "Workspace", items: [
     { to: "/", label: "Overview", icon: "grid" },
+    { to: "/drafts", label: "Drafts", icon: "file-pen" },
     { to: "/diary", label: "Diary", icon: "calendar", count: "today" },
     { to: "/matters", label: "Matters", icon: "briefcase", count: "matters" },
     { to: "/deadlines", label: "Deadlines", icon: "hourglass", count: "overdue", tone: "red" },
     { to: "/documents", label: "Documents", icon: "file", count: "documents" },
-    { to: "/drafts", label: "Drafts", icon: "file-pen" },
     { to: "/clients", label: "Clients", icon: "users", count: "clients" },
   ] },
   { group: "Finance", items: [{ to: "/billing", label: "Billing", icon: "receipt", count: "invoices_due", tone: "amber" }] },
@@ -31,9 +31,10 @@ const CRUMBS: [RegExp, string][] = [
   [/^\/billing\/\d+/, "Invoice"], [/^\/billing/, "Billing"], [/^\/activity/, "Audit log"], [/^\/status/, "Status & SLA"],
 ];
 
-// Pulse color and label for the AI engine in the sidebar
+// Pulse color, label and note for the AI engine in the sidebar (no note: show the model)
 const AI_STATE = {
-  ok: ["green", "Groq connected"], ready: ["green", "Groq ready"], error: ["red", "Groq not working"], local: ["amber", "Local reader"],
+  ok: ["green", "Groq connected", ""], ready: ["green", "Groq ready", ""], browser: ["green", "Groq ready", "key in this browser"],
+  error: ["red", "Groq not working", "open Status to fix"], local: ["amber", "Local reader", "add a Groq key"],
 } as const;
 
 const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
@@ -86,9 +87,10 @@ export function Layout() {
     navigate(q ? `/documents?q=${encodeURIComponent(q)}` : "/documents");
   };
 
-  const crumb = CRUMBS.find(([rx]) => rx.test(location.pathname))?.[1] ?? "Lex AI";
+  const crumb = CRUMBS.find(([rx]) => rx.test(location.pathname))?.[1] ?? "LEX AI";
   const ai = meta?.ai;
-  const aiState = !ai?.enabled ? "local" : !ai.health ? "ready" : ai.health.ok ? "ok" : "error";
+  // A key pasted in this browser is used before the server's
+  const aiState = browserGroqKey.get() ? "browser" : !ai?.enabled ? "local" : !ai.health ? "ready" : ai.health.ok ? "ok" : "error";
   const counts = meta?.counts;
   const instance = meta?.instance ?? "…";
 
@@ -98,7 +100,7 @@ export function Layout() {
         <div className="side-top">
           <Link className="brand" to="/">
             <span className="mark"><Icon name="logo" size={18} stroke={1.8} /></span>
-            <span className="brand-text"><b>Lex AI</b><small>Mehta &amp; Rao Associates</small></span>
+            <span className="brand-text"><b>LEX AI</b></span>
           </Link>
         </div>
 
@@ -126,12 +128,12 @@ export function Layout() {
         </nav>
 
         <div className="side-foot">
-          <Link className="engine" to="/status" title={ai?.health?.error || "AI status"}>
+          <Link className="engine" to="/status#groq" title={ai?.health?.error || "AI status"}>
             <span className={`pulse ${AI_STATE[aiState][0]}`} />
             <div className="side-label">
               <div className="small" style={{ fontWeight: 500 }}>{AI_STATE[aiState][1]}</div>
               <div className="mono faint" style={{ fontSize: 11 }}>
-                {aiState === "local" ? "add GROQ_API_KEY" : aiState === "error" ? "open Status to fix" : ai!.model.split("/").pop()}
+                {AI_STATE[aiState][2] || ai?.model.split("/").pop()}
               </div>
             </div>
           </Link>
@@ -151,7 +153,7 @@ export function Layout() {
           <button className="icon-btn" type="button" onClick={toggleMenu} aria-label="Toggle menu" aria-controls="side">
             <Icon name="menu" size={20} />
           </button>
-          <div className="bar-title"><span className="faint">Lex AI</span><span className="faint">/</span><b>{crumb}</b></div>
+          <div className="bar-title"><span className="faint">LEX AI</span><span className="faint">/</span><b>{crumb}</b></div>
           <form className="bar-search" role="search" onSubmit={onSearch}>
             <Icon name="search" size={16} />
             <input ref={search} name="q" placeholder="Search files, cases, parties…" aria-label="Search documents" />
@@ -177,7 +179,7 @@ export function Layout() {
 
         <footer className="foot">
           <div className="wrap">
-            <span className="label">Lex AI · Sample data</span>
+            <span className="label">LEX AI · Sample data</span>
             <span className="label">Served by {instance}</span>
           </div>
         </footer>

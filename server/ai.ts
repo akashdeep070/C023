@@ -16,10 +16,17 @@ const TIMEOUT_MS = 20_000;
 export const DOC_TYPES = ["Order", "Judgment", "Petition", "Evidence", "Contract",
   "Notice", "Identity", "Affidavit", "Other"];
 
-/** The key as pasted into .env or the Vercel dashboard, without stray spaces or quotes. */
-const apiKey = () => (process.env.GROQ_API_KEY ?? "").trim().replace(/^["']+|["']+$/g, "");
+/** A key as pasted, without stray spaces or quotes around it; "" if it can't be a key. */
+export function cleanKey(raw: string): string {
+  const key = raw.trim().replace(/^["']+|["']+$/g, "");
+  return /^[\x21-\x7e]{1,200}$/.test(key) ? key : "";
+}
 
-export const enabled = () => apiKey().length > 0;
+// The server's own key, from .env or the host (Vercel's Environment Variables). A key pasted in
+// the browser comes with each request instead (X-Groq-Key) and is never stored on the server.
+const serverKey = () => cleanKey(process.env.GROQ_API_KEY ?? "");
+
+export const enabled = () => serverKey().length > 0;
 export const textModel = () => process.env.GROQ_MODEL || "llama-3.1-8b-instant";
 export const visionModel = () => process.env.GROQ_VISION_MODEL || "meta-llama/llama-4-scout-17b-16e-instruct";
 
@@ -27,6 +34,8 @@ type Message = { role: "system" | "user"; content: string | unknown[] };
 
 /** A Groq failure, worded as what to do about it. */
 class GroqError extends Error {}
+
+export const REJECTED = "Groq rejected the API key.";
 
 let last: AiHealth | null = null;
 /** How the latest Groq call on this instance went, or null before the first one. */
@@ -41,7 +50,7 @@ function explain(status: number, body: string, model: string): string {
     message = e?.message ?? body;
   } catch { /* not JSON */ }
   const setting = model === visionModel() ? "GROQ_VISION_MODEL" : "GROQ_MODEL";
-  if (status === 401 || code === "invalid_api_key") return "Groq rejected the API key. Check GROQ_API_KEY, then redeploy.";
+  if (status === 401 || code === "invalid_api_key") return `${REJECTED} Copy it again from console.groq.com/keys.`;
   if (status === 404 || code === "model_not_found" || code === "model_decommissioned") {
     return `Groq does not offer the model ${model}. Set ${setting} to a current model.`;
   }
@@ -51,14 +60,17 @@ function explain(status: number, body: string, model: string): string {
   return `Groq returned ${status}: ${message.slice(0, 160)}`;
 }
 
-async function chat(messages: Message[], opts: { model?: string; json?: boolean; maxTokens?: number } = {}) {
+async function chat(messages: Message[], opts: { model?: string; json?: boolean; maxTokens?: number; key?: string } = {}) {
   const model = opts.model ?? textModel();
   const t0 = performance.now();
-  const done = (error = "") => { last = { ok: !error, at: isoDateTime(), ms: Math.round(performance.now() - t0), model, error }; };
+  // Only calls with the server's key count towards what the sidebar reports for everyone
+  const done = (error = "") => {
+    if (!opts.key) last = { ok: !error, at: isoDateTime(), ms: Math.round(performance.now() - t0), model, error };
+  };
   try {
     const res = await fetch(GROQ_URL, {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey()}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${opts.key || serverKey()}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         messages,
@@ -84,11 +96,17 @@ async function chat(messages: Message[], opts: { model?: string; json?: boolean;
   }
 }
 
-/** One tiny request that proves the key and the model work. */
-export async function check(): Promise<AiHealth | null> {
-  if (!enabled()) return null;
-  await chat([{ role: "user", content: "Reply with OK." }], { maxTokens: 1 }).catch(() => {});
-  return last;
+/** One tiny request that proves the key (the browser's, else the server's) and the model work. */
+export async function check(key?: string): Promise<AiHealth | null> {
+  if (!key && !enabled()) return null;
+  const t0 = performance.now();
+  const result = (error: string): AiHealth => ({ ok: !error, at: isoDateTime(), ms: Math.round(performance.now() - t0), model: textModel(), error });
+  try {
+    await chat([{ role: "user", content: "Reply with OK." }], { maxTokens: 1, key });
+    return result("");
+  } catch (err) {
+    return result(reason(err));
+  }
 }
 
 const reason = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200);
@@ -255,13 +273,13 @@ Reply with JSON only, using exactly these keys:
 Only use facts in the document. Never invent dates. Today is ${isoDate()}.`;
 
 /** Summarize a document and pull out its next hearing date. */
-export async function analyze(pages: Page[]): Promise<Analysis> {
+export async function analyze(pages: Page[], key?: string): Promise<Analysis> {
   const local = localAnalyze(pages);
-  if (!enabled() || !pages.some(([, t]) => t.trim())) return local;
+  if (!(key || enabled()) || !pages.some(([, t]) => t.trim())) return local;
   try {
     const raw = await chat(
       [{ role: "system", content: analyzePrompt() }, { role: "user", content: paged(pages, 9000) }],
-      { json: true, maxTokens: 450 },
+      { json: true, maxTokens: 450, key },
     );
     const data = JSON.parse(raw) as Record<string, unknown>;
     const out: Analysis = {
@@ -288,14 +306,14 @@ const ASK_PROMPT = `Answer the lawyer's question using ONLY the pages below.
 Reply with JSON only: {"answer": "one or two sentences", "page": page number the answer came from, or null}.
 If the pages do not contain the answer, say "Not found in this file." and use null for page.`;
 
-export async function ask(question: string, pages: Page[]) {
+export async function ask(question: string, pages: Page[], key?: string) {
   const context = topPages(question, pages);
-  if (enabled() && context.some(([, t]) => t.trim())) {
+  if ((key || enabled()) && context.some(([, t]) => t.trim())) {
     try {
       const raw = await chat(
         [{ role: "system", content: ASK_PROMPT },
          { role: "user", content: `${paged(context, 6000)}\n\nQuestion: ${question}` }],
-        { json: true, maxTokens: 200 },
+        { json: true, maxTokens: 200, key },
       );
       const data = JSON.parse(raw) as { answer?: unknown; page?: unknown };
       return {
@@ -311,8 +329,8 @@ export async function ask(question: string, pages: Page[]) {
 }
 
 /** Transcribe text from a photo or scan with Groq's vision model. */
-export async function readImage(data: Buffer, mime: string): Promise<{ text: string; note: string }> {
-  if (!enabled()) return { text: "", note: "Add a GROQ_API_KEY to read text from photos and scans." };
+export async function readImage(data: Buffer, mime: string, key?: string): Promise<{ text: string; note: string }> {
+  if (!(key || enabled())) return { text: "", note: "Add a Groq API key on the Status page to read text from photos and scans." };
   if (data.length > 4 * 1024 * 1024) return { text: "", note: "Images over 4 MB can't be read by the AI. Try a smaller photo." };
   try {
     const text = await chat([{
@@ -321,7 +339,7 @@ export async function readImage(data: Buffer, mime: string): Promise<{ text: str
         { type: "text", text: "Transcribe all text in this document image exactly. Output only the text." },
         { type: "image_url", image_url: { url: `data:${mime};base64,${data.toString("base64")}` } },
       ],
-    }], { model: visionModel(), maxTokens: 1500 });
+    }], { model: visionModel(), maxTokens: 1500, key });
     return { text: text.trim(), note: "" };
   } catch (err) {
     return { text: "", note: `The AI could not read this image. ${reason(err)}` };

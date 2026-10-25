@@ -38,7 +38,7 @@ export function InvoicePage() {
         <article className="card invoice">
           <div className="row between" style={{ alignItems: "flex-start" }}>
             <div>
-              <div className="label">Lex AI · Demo practice</div>
+              <div className="label">LEX AI · Demo practice</div>
               <h2 style={{ marginTop: 10 }}>INVOICE</h2>
             </div>
             <span className={invoiceBadge(t.status)}>{t.status}</span>

@@ -43,7 +43,7 @@ export function Upload() {
   return (
     <>
       <PageHead title="Upload a document"
-        lede="Orders, notices, pleadings, or photos of papers. Lex AI keeps a fingerprinted copy, reads it and suggests the next date." />
+        lede="Orders, notices, pleadings, or photos of papers. LEX AI keeps a fingerprinted copy, reads it and suggests the next date." />
 
       <form className="stack" style={{ maxWidth: 820 }} onSubmit={submit}>
         <label className={`drop${over ? " over" : ""}`}
