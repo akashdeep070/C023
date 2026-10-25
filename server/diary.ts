@@ -130,7 +130,7 @@ export function conflicts(party: string, clientName: string, excludeMatter: numb
 
 const MATTER_FIELDS = ["case_number", "title", "court", "our_side", "stage", "opposite_party", "opposite_counsel"] as const;
 
-function getMatter(mid: number): Matter {
+export function getMatter(mid: number): Matter {
   const m = get<Matter>("SELECT m.*, c.name AS client_name FROM matters m LEFT JOIN clients c ON c.id = m.client_id WHERE m.id = ?", mid);
   if (!m) throw new HttpError(404, "That matter doesn't exist.");
   return m;

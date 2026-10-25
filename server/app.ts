@@ -11,6 +11,7 @@ import type { Client, Dashboard, Deadline, Doc, DocRow, Task, Version } from "..
 import * as ai from "./ai.js";
 import { UPLOAD_DIR, all, get, run, scalar, transaction } from "./db.js";
 import { DEADLINE_SQL, addHearing, createClient, hearings, linkDocument, matterRows, registerDiary } from "./diary.js";
+import { registerDrafts } from "./drafts.js";
 import { allowed } from "./extract.js";
 import { HttpError, id, str } from "./http.js";
 import {
@@ -24,7 +25,7 @@ export const MAX_UPLOAD_MB = process.env.VERCEL ? 4 : 20;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024 } });
 export const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "100kb" }));
+app.use(express.json({ limit: "1mb" })); // drafts are saved as HTML
 
 app.use((req, res, next) => {
   const t0 = performance.now();
@@ -409,6 +410,7 @@ api.post("/invoices/:id/payments", (req, res) => {
 // ---------------------------------------------------------------- activity & status
 
 registerDiary(api);
+registerDrafts(api);
 api.get("/activity", (_req, res) => res.json(recentActivity(200)));
 api.get("/status", (_req, res) => res.json(status()));
 api.use((_req, _res, next) => next(new HttpError(404, "Not found")));
@@ -434,6 +436,10 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   }
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: err.message });
+    return;
+  }
+  if ((err as { type?: string }).type === "entity.too.large") {
+    res.status(413).json({ error: "That is too much to save at once." });
     return;
   }
   console.error(err);

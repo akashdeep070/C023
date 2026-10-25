@@ -1,11 +1,12 @@
-// Sample practice data so the app never starts empty: five clients, six matters
-// with their hearing history, deadlines, documents and invoices.
+// Sample practice data so the app never starts empty: five clients, seven matters
+// with their hearing history, deadlines, documents, drafts and invoices.
 // All names, case numbers and amounts are made up. Dates are relative to today,
 // so there is always something listed today and tomorrow.
 
 import { addDays, isoDate, isoDateTime, strftime, today } from "../shared/format.js";
 import type { Analysis } from "./ai.js";
 import { run } from "./db.js";
+import { createDraft } from "./drafts.js";
 import { ingest, log } from "./vault.js";
 
 const d = (days: number) => addDays(today(), days);
@@ -329,5 +330,13 @@ export async function seed() {
       run("INSERT INTO payments (invoice_id, amount, method, paid_on) VALUES (?, ?, ?, ?)", id, amount, method, iso(day));
     }
     logAt(ts(Math.max(-issued, 0), 16), "Invoice issued", number, null, clients[code]);
+  }
+
+  // Two drafts in progress: tomorrow's adjournment application and the Kapoor demand notice
+  for (const [template, key, hoursAgo] of [["adjournment", "C", 3], ["s138-notice", "E", 26]] as const) {
+    const draftId = createDraft(template, matters[key]);
+    const when = isoDateTime(new Date(Date.now() - hoursAgo * 3_600_000));
+    run("UPDATE drafts SET created_at = ?, updated_at = ? WHERE id = ?", when, when, draftId);
+    run("UPDATE audit SET ts = ? WHERE id = (SELECT MAX(id) FROM audit)", when);
   }
 }
