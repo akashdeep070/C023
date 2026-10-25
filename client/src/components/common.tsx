@@ -44,10 +44,16 @@ const ACTION_TONE: Record<string, Tone> = {
   "AI summary": "purple", "Hearing date found": "purple", "Asked the file": "purple",
   "Hearing confirmed": "green", Reviewed: "green", "Integrity verified": "green", Restored: "green", "Payment recorded": "green",
   "Outcome recorded": "green", "Deadline done": "green",
-  Uploaded: "blue", "New version": "blue", "Reminder email sent": "blue", "Hearing listed": "blue", "Matter opened": "blue",
+  Uploaded: "blue", "New version": "blue", "Reminder email sent": "blue", "Hearing listed": "blue", "Matter opened": "blue", "Draft created": "blue",
   "Hearing removed": "amber", "Deadline added": "amber", "Deadline reopened": "amber",
 };
 export const actionTone = (action: string): Tone => ACTION_TONE[action] ?? "";
+
+/** Amber while a draft still has blanks to fill, green when it is ready. */
+export function blanksBadge(n: number) {
+  return n ? <span className="badge amber">{n} blank{n === 1 ? "" : "s"} left</span>
+    : <span className="badge green"><Icon name="check" size={12} /> Ready</span>;
+}
 
 export function Timeline({ rows, hideDoc = false }: { rows: AuditRow[]; hideDoc?: boolean }) {
   if (!rows.length) return <div className="empty">Nothing yet.</div>;

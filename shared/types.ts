@@ -262,3 +262,33 @@ export interface ClientDetail {
   balance: number;
   activity: AuditRow[];
 }
+
+// ------------------------------------------------------------ document editor
+
+export interface Draft {
+  id: number;
+  title: string;
+  html: string;
+  template_id: string;
+  matter_id: number | null;
+  words: number;
+  blanks: number;               // fill-in blanks still left
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DraftRow extends Omit<Draft, "html"> {
+  case_number: string | null;
+  matter_title: string | null;
+  client_name: string | null;
+}
+
+export interface DraftDetail {
+  draft: Draft;
+  // the linked matter, for filling blanks
+  matter: Matter | null;
+  client: Client | null;
+  last: Hearing | null;
+  next: Hearing | null;
+  matters: { id: number; label: string }[];
+}

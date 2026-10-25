@@ -2,10 +2,14 @@
 // hearing, telling the client, drafting, and the month calendar.
 
 import { useState, type FormEvent } from "react";
-import { DRAFTS, whatsappLink, type DraftContext } from "../../../shared/drafts";
-import { addDays, isoDate, niceDate, parseDate, strftime } from "../../../shared/format";
-import type { Client, Hearing, Matter } from "../../../shared/types";
+import { Link, useNavigate } from "react-router-dom";
+import { clientUpdate, whatsappLink, type DraftContext } from "../../../shared/drafts";
+import { addDays, isoDate, niceDate, niceTime, parseDate, strftime } from "../../../shared/format";
+import { templateById } from "../../../shared/templates";
+import type { Client, DraftRow, Hearing, Matter } from "../../../shared/types";
 import { api } from "../api";
+import { useApi } from "../hooks";
+import { blanksBadge } from "./common";
 import { useFlash } from "./Flash";
 import { Icon } from "./Icon";
 
@@ -99,7 +103,7 @@ export function OutcomeForm({ h, onSaved, onCancel }:
 
 /** The message to send the client after a hearing, ready for WhatsApp or SMS. */
 export function ClientUpdate({ ctx, onClose }: { ctx: DraftContext; onClose: () => void }) {
-  const [text, setText] = useState(() => DRAFTS[0].build(ctx));
+  const [text, setText] = useState(() => clientUpdate(ctx));
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(text); setCopied(true); } catch { setCopied(false); }
@@ -121,42 +125,61 @@ export function ClientUpdate({ ctx, onClose }: { ctx: DraftContext; onClose: () 
   );
 }
 
-/** Pick a template, edit the text, then copy, download or send it. */
+const QUICK_TEMPLATES = ["adjournment", "s138-notice", "file-note"];
+
+/** A matter's documents in the editor, quick starts from the usual templates, and the client message. */
 export function DraftsPanel({ ctx }: { ctx: DraftContext }) {
-  const [id, setId] = useState(DRAFTS[0].id);
-  const template = DRAFTS.find((d) => d.id === id)!;
-  const [text, setText] = useState(() => template.build(ctx));
+  const { data: drafts } = useApi<DraftRow[]>(`/drafts?matter=${ctx.matter.id}`);
+  const [text, setText] = useState(() => clientUpdate(ctx));
   const [copied, setCopied] = useState(false);
-  const pick = (next: string) => {
-    setId(next);
-    setText(DRAFTS.find((d) => d.id === next)!.build(ctx));
-    setCopied(false);
-  };
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
-    a.download = `${template.id}-${(ctx.matter.case_number || ctx.matter.title).replace(/[^a-z0-9]+/gi, "-")}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  const flash = useFlash();
+  const start = async (templateId: string) => {
+    setBusy(true);
+    try {
+      const r = await api.post<{ id: number }>("/drafts", { template_id: templateId, matter_id: ctx.matter.id });
+      navigate(`/drafts/${r.id}`);
+    } catch (err) {
+      flash((err as Error).message, "error");
+      setBusy(false);
+    }
   };
   return (
-    <div className="stack" style={{ gap: 12 }}>
-      <select className="input" value={id} onChange={(e) => pick(e.target.value)} aria-label="Draft template">
-        {DRAFTS.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-      </select>
-      <textarea className="input draft" rows={14} value={text} onChange={(e) => setText(e.target.value)} />
+    <div className="stack" style={{ gap: 16 }}>
+      {drafts?.length ? (
+        <div className="list">
+          {drafts.map((d) => (
+            <Link className="row" to={`/drafts/${d.id}`} key={d.id} style={{ gap: 14 }}>
+              <span className="icon-tile blue"><Icon name="file-pen" size={17} /></span>
+              <div className="grow">
+                <div style={{ fontWeight: 500 }}>{d.title}</div>
+                <div className="small muted">Edited {niceTime(d.updated_at)}</div>
+              </div>
+              {blanksBadge(d.blanks)}
+            </Link>
+          ))}
+        </div>
+      ) : null}
       <div className="row wrap-row" style={{ gap: 8 }}>
-        {template.kind === "message" && (
-          <a className="btn sm" href={whatsappLink(ctx.client?.phone, text)} target="_blank" rel="noreferrer">
-            <Icon name="send" size={14} /> Send on WhatsApp
-          </a>
-        )}
+        {QUICK_TEMPLATES.map((id) => (
+          <button className="btn ghost sm" key={id} disabled={busy} onClick={() => start(id)}>
+            <Icon name="plus" size={14} /> {templateById(id)!.name}
+          </button>
+        ))}
+        <Link className="btn quiet sm" to={`/drafts?matter=${ctx.matter.id}`}>All templates →</Link>
+      </div>
+      <div className="divider" style={{ margin: "8px 0" }} />
+      <div className="label">Message to the client</div>
+      <textarea className="input draft" rows={9} value={text} onChange={(e) => setText(e.target.value)} aria-label="Message to the client" />
+      <div className="row wrap-row" style={{ gap: 8 }}>
+        <a className="btn sm" href={whatsappLink(ctx.client?.phone, text)} target="_blank" rel="noreferrer">
+          <Icon name="send" size={14} /> Send on WhatsApp
+        </a>
         <button className="btn ghost sm" onClick={async () => {
           try { await navigator.clipboard.writeText(text); setCopied(true); } catch { setCopied(false); }
         }}><Icon name="copy" size={14} /> {copied ? "Copied" : "Copy"}</button>
-        <button className="btn ghost sm" onClick={download}><Icon name="download" size={14} /> Download</button>
       </div>
-      <p className="small muted">Fill in anything in [square brackets] before you use it.</p>
     </div>
   );
 }

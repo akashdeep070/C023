@@ -119,6 +119,18 @@ CREATE TABLE IF NOT EXISTS deadlines (
   done INTEGER DEFAULT 0,
   created_at TEXT NOT NULL
 );
+-- Documents written in the editor, saved as HTML
+CREATE TABLE IF NOT EXISTS drafts (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  html TEXT NOT NULL DEFAULT '',
+  template_id TEXT DEFAULT 'blank',
+  matter_id INTEGER REFERENCES matters(id),
+  words INTEGER DEFAULT 0,
+  blanks INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_versions_doc ON versions(document_id);
 CREATE INDEX IF NOT EXISTS idx_audit_doc ON audit(document_id);
 CREATE INDEX IF NOT EXISTS idx_hearings_date ON hearings(date);

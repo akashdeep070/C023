@@ -69,7 +69,8 @@ Most small practices still run on phones, paper and diaries:
 | 🗂️ | **Matters** | One workspace per case: court, stage, parties, full hearing history, documents, deadlines, fees and activity |
 | ⚖️ | **Conflict check** | While opening a matter, Lex AI warns if the other side is already your client, or your client is an opposite party elsewhere |
 | ⏳ | **Deadlines and limitation** | A calculator for common periods (CPC appeals, written statements, NI Act s.138, arbitration s.34, consumer complaints) with the section cited. Add the result as a deadline |
-| 📝 | **Drafts** | Client update, adjournment application, s.138 demand notice and file note, filled in from the matter |
+| 📝 | **Drafting** | A Google Docs-style editor: an A4 page, a formatting toolbar, an outline and autosave. Start from a template and Lex AI fills in the court, case number, parties and next date from the matter. Anything it can't answer is a highlighted blank to fill in. Download for Word or print to PDF |
+| 📚 | **Templates** | Suit for accounts by an insurance agent (with case-law notes), Form No. 15D, Form No. 26D, and eligibility criteria with terms and conditions, all made from the firm's own files. Also an adjournment application, an s.138 demand notice and a hearing file note |
 | 🔔 | **Reminders** | Hearings today and tomorrow, with outcomes not yet recorded flagged on the overview |
 
 **For the files**
@@ -96,6 +97,10 @@ Most small practices still run on phones, paper and diaries:
 <tr>
 <td width="50%"><img src="docs/screenshots/document.png" alt="Document page with AI summary and the next date read from page 1, ready to add to the diary"><br><sub><b>Document.</b> AI summary, and the next date read from page 1 waiting to be checked.</sub></td>
 <td width="50%"><img src="docs/screenshots/billing.png" alt="Invoice INV-2026-014 with line items, retainer and balance due"><br><sub><b>Billing.</b> Itemized invoice with retainer, payments and a print-to-PDF button.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/drafts.png" alt="Drafts page with a row of templates to start from and the recent documents below"><br><sub><b>Drafts.</b> Start from a template, filled in from a matter. Recent documents show how many blanks are left.</sub></td>
+<td width="50%"><img src="docs/screenshots/editor.png" alt="Editor with the suit for accounts on an A4 page, the formatting toolbar and the blanks panel"><br><sub><b>Editor.</b> The firm's suit-for-accounts template. Highlighted blanks are filled from the side panel or typed over.</sub></td>
 </tr>
 </table>
 
@@ -186,10 +191,11 @@ If Groq retires a model, change `GROQ_MODEL` or `GROQ_VISION_MODEL`. No code cha
 3. **Outcome not recorded.** In the side panel, open *CC/412/2025* and record the missed outcome.
 4. **Document.** Open *Order on injunction application (Exh. 5)*. The AI read the next date from page 1. Check it, then **Add to diary**.
 5. **New matter.** Go to **Matters → New matter**, pick a client and type *Ananya Sharma* as the opposite party. The conflict check flags her as an existing client.
-6. **Deadlines.** In the calculator, choose *Cheque dishonour → Send the demand notice*, set the return-memo date, and **Add deadline**. Then open the Kapoor matter and draft the s.138 notice.
-7. **Upload and ask.** Upload `samples/sample-bail-order.pdf` and ask "When was bail granted?". The answer cites page 3.
-8. **Proof.** On a document, **Verify now**, then **Demo: simulate a tampering script**, **Verify now** (red) and **Restore locked copy** (green).
-9. **Break it on purpose (Docker).** `docker compose exec app1 kill 1`. The app keeps working through app2.
+6. **Deadlines.** In the calculator, choose *Cheque dishonour → Send the demand notice*, set the return-memo date, and **Add deadline**. Then open the Kapoor matter and start the s.138 notice from its **Drafts** card.
+7. **Drafting.** Open **Drafts**, set *Fill in from* to *CS (COMM) 88/2026* and pick **Application for adjournment**: the court, case, parties and next date are already in. Click a highlighted blank and type over it, then **Word** to download. Try **Form No. 26D** to see a form with its tables.
+8. **Upload and ask.** Upload `samples/sample-bail-order.pdf` and ask "When was bail granted?". The answer cites page 3.
+9. **Proof.** On a document, **Verify now**, then **Demo: simulate a tampering script**, **Verify now** (red) and **Restore locked copy** (green).
+10. **Break it on purpose (Docker).** `docker compose exec app1 kill 1`. The app keeps working through app2.
 
 Another sample, `legal-notice-kapoor.txt`, is in [`samples/`](samples).
 
@@ -247,7 +253,7 @@ Grays carry the layout. Color is only used to mean something:
 | Color | Means | Where you see it |
 | --- | --- | --- |
 | 🟢 Green | Done or healthy | Reviewed files, paid invoices, verified fingerprints, met SLAs, healthy checks |
-| 🟠 Amber | Needs a person | Outcomes not recorded, deadlines this week, AI-read dates to check, summaries to review, money owed |
+| 🟠 Amber | Needs a person | Outcomes not recorded, deadlines this week, AI-read dates to check, summaries to review, blanks left in a draft, money owed |
 | 🔴 Red | Error or risk | Overdue deadlines, conflicts of interest, tampering, overdue invoices, missed SLAs |
 | 🔵 Blue | Scheduled, links and focus | Hearings in the diary, next dates, uploads, reminders, the hearings chart |
 | 🟣 Purple | AI | Summaries, *Ask the file* answers, AI steps in the pipeline |
@@ -267,7 +273,8 @@ Every color is paired with a text label, so nothing relies on color alone. Badge
 | First 60 PDF pages only | Bounded extraction time |
 | Node's built-in `node:sqlite` | No database server and no native modules to compile |
 | One Node process per container | About 80 MB of memory each, so two fit on a t3.micro |
-| No UI framework | The React bundle is about 100 KB gzipped |
+| No UI framework or editor library | The editor uses the browser's own editing. The whole React bundle is about 130 KB gzipped |
+| Autosave waits for a pause | One save request 0.8 s after you stop typing, not one per key |
 
 ## API reference
 
@@ -315,6 +322,20 @@ All endpoints return JSON. Errors come back as `{ "error": "message" }` with a 4
 </details>
 
 <details>
+<summary><b>Drafts</b></summary>
+
+| Method | Path | Does |
+| --- | --- | --- |
+| `GET` | `/api/drafts?q=&matter=` | Drafts with their matter, word count and blanks left |
+| `POST` | `/api/drafts` | `{ template_id, matter_id }` starts a draft, filling what the matter can answer → `{ id }` |
+| `GET` | `/api/drafts/:id` | The draft's HTML, its matter, client and hearings, and the matters it can be linked to |
+| `POST` | `/api/drafts/:id` | Autosave: any of `{ title, html, matter_id }` |
+| `POST` | `/api/drafts/:id/copy` | Make a copy → `{ id }` |
+| `POST` | `/api/drafts/:id/delete` | Delete the draft |
+
+</details>
+
+<details>
 <summary><b>Clients and billing</b></summary>
 
 | Method | Path | Does |
@@ -349,6 +370,7 @@ All endpoints return JSON. Errors come back as `{ "error": "message" }` with a 4
 server/                 Express API (TypeScript)
   app.ts                App setup, documents, clients, billing and the overview
   diary.ts              Matters, hearings, outcomes, deadlines, reminders and the conflict check
+  drafts.ts             Drafts made from templates: create, autosave, copy and delete
   index.ts              Serves the app on a port (local and Docker)
   http.ts               Small request helpers
   ai.ts                 Groq calls (summary, hearing date, Q&A, image reading) and the local fallback
@@ -356,16 +378,18 @@ server/                 Express API (TypeScript)
   vault.ts              Storage, SHA-256, versions, tamper and restore, audit log
   queries.ts            Shared read queries, request metrics and health
   db.ts                 SQLite schema and helpers (node:sqlite)
-  seed.ts               Sample clients, matters, hearings, deadlines, documents and invoices
+  seed.ts               Sample clients, matters, hearings, deadlines, documents, drafts and invoices
 shared/                 Used by both server and client
   types.ts              API response types
   format.ts             Dates, rupees (₹3,40,000) and file sizes
   limitation.ts         Limitation periods with their sections, and the date calculation
-  drafts.ts             Draft templates and the WhatsApp link
+  templates.ts          Document templates as HTML, with blanks the matter can fill
+  drafts.ts             The client update message and the WhatsApp link
 client/                 React app (TypeScript + Vite)
   src/main.tsx          Routes
-  src/pages/            One component per page
+  src/pages/            One component per page (DraftEditor.tsx is the document editor)
   src/components/       Sidebar layout, outcome form, client update, drafts, calendar, chart, icons
+  src/richtext.ts       Cleans pasted and saved HTML; exports a draft to Word
   src/styles.css        The whole design system in one hand-written file
 samples/                Files to upload during the demo
 docs/screenshots/       Images used in this README

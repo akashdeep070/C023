@@ -14,6 +14,8 @@ import { Deadlines } from "./pages/Deadlines";
 import { Diary } from "./pages/Diary";
 import { DocumentPage } from "./pages/DocumentPage";
 import { Documents } from "./pages/Documents";
+import { DraftEditor } from "./pages/DraftEditor";
+import { Drafts } from "./pages/Drafts";
 import { InvoiceNew } from "./pages/InvoiceNew";
 import { InvoicePage } from "./pages/InvoicePage";
 import { MatterPage } from "./pages/MatterPage";
@@ -40,6 +42,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="upload" element={<Upload />} />
             <Route path="documents" element={<Documents />} />
             <Route path="documents/:id" element={<DocumentPage />} />
+            <Route path="drafts" element={<Drafts />} />
+            <Route path="drafts/:id" element={<DraftEditor />} />
             <Route path="diary" element={<Diary />} />
             <Route path="hearings" element={<Navigate to="/diary" replace />} />
             <Route path="matters" element={<Matters />} />

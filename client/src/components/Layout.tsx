@@ -13,6 +13,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: "/matters", label: "Matters", icon: "briefcase", count: "matters" },
     { to: "/deadlines", label: "Deadlines", icon: "hourglass", count: "overdue", tone: "red" },
     { to: "/documents", label: "Documents", icon: "file", count: "documents" },
+    { to: "/drafts", label: "Drafts", icon: "file-pen" },
     { to: "/clients", label: "Clients", icon: "users", count: "clients" },
   ] },
   { group: "Finance", items: [{ to: "/billing", label: "Billing", icon: "receipt", count: "invoices_due", tone: "amber" }] },
@@ -24,6 +25,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
 
 const CRUMBS: [RegExp, string][] = [
   [/^\/$/, "Overview"], [/^\/upload/, "Upload"], [/^\/documents\/\d+/, "Document"], [/^\/documents/, "Documents"],
+  [/^\/drafts\/\d+/, "Draft"], [/^\/drafts/, "Drafts"],
   [/^\/diary/, "Diary"], [/^\/matters\/\d+/, "Matter"], [/^\/matters/, "Matters"], [/^\/deadlines/, "Deadlines"],
   [/^\/clients\/\d+/, "Client"], [/^\/clients/, "Clients"], [/^\/billing\/new/, "New invoice"],
   [/^\/billing\/\d+/, "Invoice"], [/^\/billing/, "Billing"], [/^\/activity/, "Audit log"], [/^\/status/, "Status & SLA"],
