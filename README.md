@@ -439,15 +439,6 @@ nginx.conf              Load balancing with failover
 | "That draft doesn't exist" | On Vercel, drafts live in the browser they were written in, so open them from that browser. Locally, the draft was deleted or the `data/` folder was reset |
 | "Files must be 4 MB or smaller" on Vercel | Vercel's request size limit. Compress the PDF or run locally or with Docker |
 
-## Team
-
-| Role | Name | ID |
-| --- | --- | --- |
-| Team member | Akash Deep | 24a12res59 |
-| Team member | Deepa Sharma | 24a12res218 |
-| Team member | | |
-| Team member | | |
-| Team member | | |
 
 ---
 
