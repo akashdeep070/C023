@@ -37,13 +37,10 @@ summarized and searchable.
 - [API reference](#api-reference)
 - [Project structure](#project-structure)
 - [Troubleshooting](#troubleshooting)
-- [Team](#team)
 
 ## About
 
-LEX AI is our five-person project for the 2026 Cloud Computing course. It shows how a small law practice can move client files off paper and into the cloud: AI reads each file, and a lawyer always makes the final call. It is an MVP built for the class presentation: every feature works end to end on made-up data, and it runs cheaply on one small server.
-
-📽️ **Pitch deck:** [`docs/pitch-deck.pdf`](docs/pitch-deck.pdf), 10 slides built around real screenshots: the team, the diary, matters, documents and AI, proof and cloud, drafting, deadlines and billing, what makes LEX AI different, and present and future work. [`docs/pitch-deck.html`](docs/pitch-deck.html) is the same deck as one file you can open in a browser (arrow keys move between slides). To change it, edit [`docs/deck/index.html`](docs/deck/index.html) and run `npm run deck`; team names and IDs are on slide 2.
+LEX AI is our project for the 2026 Cloud Computing course. It shows how a small law practice can move client files off paper and into the cloud: AI reads each file, and a lawyer always makes the final call. It is an MVP built for the class presentation: every feature works end to end on made-up data, and it runs cheaply on one small server.
 
 ## The problem
 
@@ -414,8 +411,6 @@ client/                 React app (TypeScript + Vite)
   src/draftStore.ts     Where drafts live: the server's database, or the browser on Vercel
   src/styles.css        The whole design system in one hand-written file
 samples/                Files to upload during the demo
-docs/deck/              Pitch deck source and its screenshots (npm run deck builds the HTML and PDF)
-scripts/build-deck.mjs  Inlines screenshots and fonts, then prints the deck to PDF with Chromium
 docs/screenshots/       Images used in this README
 api/index.js            Vercel serverless entry that runs the same Express app
 vercel.json             Vercel build settings and rewrites
